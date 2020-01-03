@@ -85,6 +85,9 @@ const options = {
         let filename = `${startDate.getFullYear()}${(startDate.getMonth()+1).toString().padStart(2, "0")}${startDate.getDate().toString().padStart(2, '0')} - ${endDate.getFullYear()}${(endDate.getMonth()+1).toString().padStart(2, "0")}${endDate.getDate().toString().padStart(2, '0')}`;
         let data = await toCSV(page);
         fs.writeFileSync(`${__dirname}/data/${filename}.csv`, data);
+        page.screenshot({
+            path: `${__dirname}/data/${filename}.png`
+        });
     }
     async function toCSV(page) {
         console.log("toCSV()");
