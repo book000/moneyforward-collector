@@ -29,6 +29,7 @@ MoneyForwardの「家計」にある入出金明細をCSVで出力する。つ�
 - data/
   - yymmdd - yymmdd.csv
   - yymmdd - yymmdd.png
+  - yymmdd - yymmdd.html
 - .env
 - .env.example
 - .gitignore

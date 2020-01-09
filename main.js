@@ -1,12 +1,8 @@
 require("dotenv").config();
 
 const puppeteer = require('puppeteer');
-const {
-    TimeoutError
-} = require('puppeteer/Errors');
 const fs = require('fs');
 const path = require('path');
-const scriptName = path.basename(__filename);
 const options = {
     "headless": false,
     "slowMo": 'SLOWMO' in process.env ? parseInt(process.env.SLOWMO, 10) : 200,
@@ -20,6 +16,10 @@ const options = {
     let page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0');
 
+    if (!fs.existsSync(`${__dirname}/data/`)) {
+        fs.mkdirSync(`${__dirname}/data/`);
+    }
+
     await login(page);
     await cf(page);
 
@@ -27,7 +27,8 @@ const options = {
 
     async function login(page) {
         console.log("login()");
-        await page.goto("https://ssnb.x.moneyforward.com/users/sign_in");
+        const url = process.env.URL;
+        await page.goto(`${url}users/sign_in`);
         await page.waitFor(3000);
 
         const mail_address = process.env.MAIL_ADDRESS;
@@ -49,7 +50,8 @@ const options = {
     }
     async function cf(page) {
         console.log("cf()");
-        await page.goto("https://ssnb.x.moneyforward.com/cf");
+        const url = process.env.URL;
+        await page.goto(`${url}cf`); // https://ssnb.x.moneyforward.com/cf
         await page.waitFor(3000);
 
         //button.fc-button-prev
@@ -60,6 +62,13 @@ const options = {
 
             await save(page);
 
+            await page.waitFor(5000);
+            await page.evaluate(() => {
+                if (document.querySelector(`button.fc-button-prev`) != null) {
+                    document.querySelector(`button.fc-button-prev`).scrollIntoView()
+                }
+            });
+            await page.waitFor(2000);
             await page.waitForSelector('button.fc-button-prev', {
                     visible: true
                 })
@@ -86,8 +95,16 @@ const options = {
         let data = await toCSV(page);
         fs.writeFileSync(`${__dirname}/data/${filename}.csv`, data);
         page.screenshot({
-            path: `${__dirname}/data/${filename}.png`
+            path: `${__dirname}/data/${filename}.png`,
+            fullPage: true
         });
+        let html = await page.evaluate(() => {
+            return document.getElementsByTagName('html')[0].innerHTML
+        });
+        const url = process.env.URL;
+        html = html.replace(/href="\//g, `href=\"${url}`);
+        html = html.replace(/src="\//g, `src=\"${url}`);
+        await fs.writeFileSync(`${__dirname}/data/${filename}.html`, html);
     }
     async function toCSV(page) {
         console.log("toCSV()");
