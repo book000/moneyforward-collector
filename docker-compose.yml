@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  moneyforward-collector:
+    build:
+      context: ./
+    volumes:
+      - ./data:/data
+    env_file:
+      - moneyforward-collector.env

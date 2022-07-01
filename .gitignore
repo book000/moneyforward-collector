@@ -1,4 +1,6 @@
-data
-node_modules
-.npm
-.env
+node_modules/
+dist/
+data/*
+!data/.gitkeep
+config.json
+*.env
