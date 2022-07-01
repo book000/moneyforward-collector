@@ -1688,7 +1688,7 @@ punycode@^2.1.0:
   resolved "https://registry.yarnpkg.com/punycode/-/punycode-2.1.1.tgz#b58b010ac40c22c5657616c8d2c2c02c7bf479ec"
   integrity sha512-XRsRjdf+j5ml+y/6GKHPZbrF/8p2Yga0JPtdqTIY2Xe5ohJPD9saDJJLPvp9+NSBprVvevdXZybnj2cv8OEd0A==
 
-puppeteer-core@^15.1.1:
+puppeteer-core@15.3.0:
   version "15.3.0"
   resolved "https://registry.yarnpkg.com/puppeteer-core/-/puppeteer-core-15.3.0.tgz#322a0199e83dd69f9a517394c308c56ef090927b"
   integrity sha512-MClDfaCnEJU6eRVrnHuklBrdsxC4cCuRLbplZDcLSZ1qGGtHpkfWOTf8wKDa5bpE8430wO5somDPAM0R45VF3g==
