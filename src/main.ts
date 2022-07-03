@@ -56,7 +56,7 @@ async function cf(config: Config, page: Page) {
     )
     console.log(`before: ${before}`)
 
-    await save(page)
+    await save(config, page)
 
     await page.waitForTimeout(5000)
     await page.evaluate(() => {
@@ -85,7 +85,7 @@ async function cf(config: Config, page: Page) {
   }
 }
 
-async function save(page: Page) {
+async function save(config: Config, page: Page) {
   console.log('save()')
   const dateText = await page.$eval(
     '.fc-header-title h2',
@@ -115,7 +115,7 @@ async function save(page: Page) {
   let html = await page.evaluate(() => {
     return document.getElementsByTagName('html')[0].innerHTML
   })
-  const url = process.env.URL
+  const url = config.moneyforward.base_url
   html = html.replace(/href="\//g, `href="${url}`)
   html = html.replace(/src="\//g, `src="${url}`)
   fs.writeFileSync(`/data/${filename}.html`, html)

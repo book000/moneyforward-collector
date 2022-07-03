@@ -5,6 +5,9 @@ services:
     build:
       context: ./
     volumes:
-      - ./data:/data
-    env_file:
-      - moneyforward-collector.env
+      - type: bind
+        source: ./data
+        target: /data
+      - type: bind
+        source: ./config.json
+        target: /app/config.json
