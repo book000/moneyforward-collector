@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   moneyforward-collector:
-    image: book000/moneyforward-collector:v2.0.1
+    image: book000/moneyforward-collector:v2.1.1
     volumes:
       - type: bind
         source: ./data

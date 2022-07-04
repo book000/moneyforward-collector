@@ -2,6 +2,8 @@ FROM alpine:edge
 
 RUN apk update
 
+RUN apk add dumb-init
+
 RUN apk add --no-cache curl fontconfig font-noto-cjk \
   && fc-cache -fv
 
