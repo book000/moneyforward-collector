@@ -41,6 +41,7 @@ async function login(config: Config, page: Page) {
       visible: true,
     })
     .then((el) => el?.click())
+  await page.waitForTimeout(3000)
 }
 
 async function cf(config: Config, page: Page) {
