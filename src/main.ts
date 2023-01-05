@@ -13,6 +13,11 @@ interface Config {
     mail_address: string
     password: string
   }
+  proxy?: {
+    server: string
+    username?: string
+    password?: string
+  }
   puppeteer?: { [key: string]: unknown }
 }
 
@@ -174,11 +179,23 @@ async function main() {
     ...config.puppeteer,
   }
 
+  if (config.proxy && config.proxy.server) {
+    puppeteerOptions.args?.push('--proxy-server=' + config.proxy.server)
+  }
+
   const browser = await puppeteer.launch(puppeteerOptions)
   const page = await browser.newPage()
   await page.setUserAgent(
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0'
   )
+  if (config.proxy && config.proxy.username && config.proxy.password) {
+    console.log('Login proxy')
+    await page.authenticate({
+      username: config.proxy.username,
+      password: config.proxy.password,
+    })
+    console.log('Login proxy... done')
+  }
 
   await login(config, page)
   await cf(config, page)
