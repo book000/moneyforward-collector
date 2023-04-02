@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-  moneyforward-collector:
-    image: book000/moneyforward-collector:v2.3.0
+  app:
+    build: .
     volumes:
       - type: bind
         source: ./data
