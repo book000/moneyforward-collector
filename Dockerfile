@@ -1,13 +1,11 @@
 FROM alpine:edge
 
-RUN apk update
-
-RUN apk add dumb-init
-
-RUN apk add --no-cache curl fontconfig font-noto-cjk \
-  && fc-cache -fv
-
-RUN apk add --no-cache \
+# hadolint ignore=DL3018
+RUN apk update && \
+  apk add --update --no-cache dumb-init && \
+  apk add --update --no-cache curl fontconfig font-noto-cjk && \
+  fc-cache -fv && \
+  apk add --update --no-cache \
   chromium \
   nss \
   freetype \
@@ -16,9 +14,8 @@ RUN apk add --no-cache \
   ca-certificates \
   ttf-freefont \
   nodejs \
-  yarn
-
-RUN apk add --update --no-cache tzdata && \
+  yarn && \
+  apk add --update --no-cache tzdata && \
   cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
   echo "Asia/Tokyo" > /etc/timezone && \
   apk del tzdata
@@ -30,5 +27,8 @@ RUN yarn
 COPY src/ src/
 COPY tsconfig.json .
 
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["yarn", "build"]
+CMD ["/app/entrypoint.sh"]
