@@ -1,18 +1,3 @@
-FROM node:20-alpine as builder
-
-WORKDIR /app
-
-COPY package.json yarn.lock ./
-
-RUN echo network-timeout 600000 > .yarnrc && \
-  yarn install --frozen-lockfile && \
-  yarn cache clean
-
-COPY src/ src/
-COPY tsconfig.json .
-
-RUN yarn package
-
 FROM zenika/alpine-chrome:with-puppeteer-xvfb as runner
 
 # hadolint ignore=DL3002
@@ -31,7 +16,14 @@ RUN apk upgrade --no-cache --available && \
 
 WORKDIR /app
 
-COPY --from=builder /app/output .
+COPY package.json yarn.lock ./
+
+RUN echo network-timeout 600000 > .yarnrc && \
+  yarn install --frozen-lockfile && \
+  yarn cache clean
+
+COPY src/ src/
+COPY tsconfig.json .
 
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh

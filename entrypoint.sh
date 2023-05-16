@@ -2,7 +2,7 @@
 
 while :
 do
-  node index.js || true
+  yarn start || true
 
   echo "Waiting 1 hour before restarting..."
   sleep 3600
