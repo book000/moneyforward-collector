@@ -2,7 +2,7 @@
 
 while :
 do
-  yarn start || true
+  pnpm start || true
 
   echo "Waiting 1 hour before restarting..."
   sleep 3600

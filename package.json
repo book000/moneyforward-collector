@@ -1,44 +1,48 @@
 {
   "name": "moneyforward-collector",
-  "version": "2.1.1",
-  "description": "",
-  "main": "dist/main.js",
-  "repository": "git@github.com:tomacheese/moneyforward-collector.git",
-  "author": "Tomachi",
+  "version": "3.0.0",
+  "description": "Export MoneyForward deposit/withdrawal statements in CSV and take a screenshot.",
+  "homepage": "https://github.com/book000/moneyforward-collector",
+  "bugs": {
+    "url": "https://github.com/book000/moneyforward-collector/issues"
+  },
   "license": "MIT",
+  "author": "Tomachi",
   "private": true,
+  "main": "dist/main.js",
+  "repository": {
+    "url": "git@github.com:book000/moneyforward-collector.git",
+    "type": "git"
+  },
   "scripts": {
-    "start": "ts-node -r tsconfig-paths/register ./src/main.ts",
-    "dev": "ts-node-dev --poll -r tsconfig-paths/register ./src/main.ts",
-    "package": "run-s clean compile packing",
-    "packing": "ncc build ./dist/main.js -o output/",
-    "compile": "tsc -p .",
-    "clean": "rimraf dist output",
-    "lint": "run-p -c lint:prettier lint:eslint lint:tsc",
+    "start": "tsx ./src/main.ts",
+    "dev": "tsx watch ./src/main.ts",
+    "lint": "run-z lint:prettier,lint:eslint,lint:tsc",
+    "fix": "run-z fix:prettier,fix:eslint",
     "lint:prettier": "prettier --check src",
     "lint:eslint": "eslint . --ext ts,tsx",
     "lint:tsc": "tsc",
-    "fix": "run-s fix:prettier fix:eslint",
     "fix:eslint": "eslint . --ext ts,tsx --fix",
-    "fix:prettier": "prettier --write src"
+    "fix:prettier": "prettier --write src",
+    "preinstall": "npx only-allow pnpm"
   },
   "devDependencies": {
-    "@types/node": "20.11.16",
+    "@book000/node-utils": "1.12.58",
+    "@types/node": "20.11.17",
     "@typescript-eslint/eslint-plugin": "6.21.0",
     "@typescript-eslint/parser": "6.21.0",
-    "@vercel/ncc": "0.38.1",
     "eslint": "8.56.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-config-standard": "17.1.0",
     "eslint-plugin-import": "2.29.1",
     "eslint-plugin-n": "16.6.2",
-    "eslint-plugin-node": "11.1.0",
     "eslint-plugin-promise": "6.1.1",
-    "prettier": "2.8.8",
-    "puppeteer-core": "21.11.0",
-    "ts-node": "10.9.2",
-    "ts-node-dev": "2.0.0",
-    "typescript": "5.3.3",
-    "yarn-run-all": "3.1.1"
-  }
+    "eslint-plugin-unicorn": "51.0.1",
+    "prettier": "3.2.5",
+    "puppeteer-core": "22.0.0",
+    "run-z": "2.0.0",
+    "tsx": "4.7.1",
+    "typescript": "5.3.3"
+  },
+  "packageManager": "pnpm@8.15.1"
 }
