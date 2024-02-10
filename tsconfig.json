@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "target": "es2020",
+    "module": "commonjs",
     "moduleResolution": "Node",
-    "lib": ["ESNext", "ESNext.AsyncIterable", "DOM"],
+    "lib": ["ESNext", "esnext.AsyncIterable", "DOM"],
     "outDir": "./dist",
     "removeComments": true,
     "esModuleInterop": true,
@@ -14,6 +15,7 @@
     "declarationMap": true,
     "strict": true,
     "noImplicitAny": true,
+    "strictNullChecks": true,
     "strictBindCallApply": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -23,7 +25,7 @@
     "baseUrl": ".",
     "newLine": "LF",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src/**/*"]

@@ -1,4 +1,4 @@
-import fs from 'fs'
+import fs from 'node:fs'
 import puppeteer, {
   BrowserConnectOptions,
   BrowserLaunchArgumentOptions,
@@ -6,6 +6,7 @@ import puppeteer, {
   Page,
   Product,
 } from 'puppeteer-core'
+import { Logger } from '@book000/node-utils'
 
 interface Config {
   moneyforward: {
@@ -22,7 +23,8 @@ interface Config {
 }
 
 async function login(config: Config, page: Page) {
-  console.log('login()')
+  const logger = Logger.configure('login')
+  logger.info('login()')
   const url = config.moneyforward.base_url
   await page.goto(`${url}/users/sign_in`)
   await new Promise((resolve) => setTimeout(resolve, 3000))
@@ -34,41 +36,42 @@ async function login(config: Config, page: Page) {
     .waitForSelector('#sign_in_session_service_email', {
       visible: true,
     })
-    .then((el) => el?.type(mailAddress))
+    .then((element) => element?.type(mailAddress))
   await page
     .waitForSelector('#sign_in_session_service_password', {
       visible: true,
     })
-    .then((el) => el?.type(password))
+    .then((element) => element?.type(password))
   await new Promise((resolve) => setTimeout(resolve, 1000))
   await page
     .waitForSelector('#login-btn-sumit', {
       visible: true,
     })
-    .then((el) => el?.click())
+    .then((element) => element?.click())
   await new Promise((resolve) => setTimeout(resolve, 3000))
 }
 
 async function cf(config: Config, page: Page) {
-  console.log('cf()')
+  const logger = Logger.configure('cf')
+  logger.info('cf()')
   const url = config.moneyforward.base_url
   await page.goto(`${url}/cf`)
-  await page.waitForTimeout(3000)
+  await new Promise((resolve) => setTimeout(resolve, 3000))
 
   while (true) {
     const before = await page.$eval(
       '.fc-header-title h2',
-      (el) => el.textContent
+      (element) => element.textContent
     )
-    console.log(`before: ${before}`)
+    logger.info(`before: ${before}`)
 
     await save(config, page)
 
     await new Promise((resolve) => setTimeout(resolve, 5000))
     await page.evaluate(() => {
-      const prevElement = document.querySelector(`button.fc-button-prev`)
-      if (prevElement != null) {
-        prevElement.scrollIntoView()
+      const previousElement = document.querySelector(`button.fc-button-prev`)
+      if (previousElement != null) {
+        previousElement.scrollIntoView()
       }
     })
     await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -76,32 +79,36 @@ async function cf(config: Config, page: Page) {
       .waitForSelector('button.fc-button-prev', {
         visible: true,
       })
-      .then((el) => el?.click())
+      .then((element) => element?.click())
     await new Promise((resolve) => setTimeout(resolve, 5000))
     const after = await page.$eval(
       '.fc-header-title h2',
-      (el) => (el as unknown as { innerText: string }).innerText // ?
+      (element) => element.textContent // ?
     )
-    console.log(`after: ${after}`)
+    logger.info(`after: ${after}`)
     if (before === after) {
-      console.log(`before == after. break;`)
+      logger.info(`before == after. break;`)
       break
     }
-    console.log(`before != after. next`)
+    logger.info(`before != after. next`)
   }
 }
 
 async function save(config: Config, page: Page) {
-  console.log('save()')
+  const logger = Logger.configure('save')
+  logger.info('save()')
   const dateText = await page.$eval(
     '.fc-header-title h2',
-    (el) => (el as unknown as { innerText: string }).innerText // ?
+    (element) => element.textContent // ?
   )
+  if (!dateText) {
+    return
+  }
   const dates = dateText.split(' - ')
   const startDate = new Date(dates[0])
-  console.log(`startDate: ${startDate.toString()}`)
+  logger.info(`startDate: ${startDate.toString()}`)
   const endDate = new Date(dates[1])
-  console.log(`endDate: ${endDate.toString()}`)
+  logger.info(`endDate: ${endDate.toString()}`)
   const filename = `${startDate.getFullYear()}${(startDate.getMonth() + 1)
     .toString()
     .padStart(2, '0')}${startDate
@@ -112,27 +119,28 @@ async function save(config: Config, page: Page) {
     .padStart(2, '0')}${endDate.getDate().toString().padStart(2, '0')}`
   const csv = await toCSV(page)
   if (csv) {
-    fs.writeFileSync(`/data/${filename}.csv`, csv)
+    fs.writeFileSync(`/data/csv/${filename}.csv`, csv)
   }
   const tsv = await toTSV(page)
   if (tsv) {
-    fs.writeFileSync(`/data/${filename}.tsv`, tsv)
+    fs.writeFileSync(`/data/tsv/${filename}.tsv`, tsv)
   }
-  page.screenshot({
-    path: `/data/${filename}.png`,
+  await page.screenshot({
+    path: `/data/screenshot/${filename}.png`,
     fullPage: true,
   })
   let html = await page.evaluate(() => {
-    return document.getElementsByTagName('html')[0].innerHTML
+    return document.querySelectorAll('html')[0].innerHTML
   })
   const url = config.moneyforward.base_url
-  html = html.replace(/href="\//g, `href="${url}`)
-  html = html.replace(/src="\//g, `src="${url}`)
-  fs.writeFileSync(`/data/${filename}.html`, html)
+  html = html.replaceAll('href="/', `href="${url}`)
+  html = html.replaceAll('src="/', `src="${url}`)
+  fs.writeFileSync(`/data/html/${filename}.html`, html)
 }
 
 async function toCSV(page: Page) {
-  console.log('toCSV()')
+  const logger = Logger.configure('toCSV')
+  logger.info('toCSV()')
   return await page.evaluate(() => {
     const table: HTMLTableElement | null = document.querySelector(
       'table#cf-detail-table'
@@ -141,12 +149,17 @@ async function toCSV(page: Page) {
       return null
     }
     let dataCsv = ''
-    for (let i = 0; i < table.rows.length; i++) {
-      for (let j = 0; j < table.rows[i].cells.length; j++) {
+    for (let rowIndex = 0; rowIndex < table.rows.length; rowIndex++) {
+      for (
+        let cellIndex = 0;
+        cellIndex < table.rows[rowIndex].cells.length;
+        cellIndex++
+      ) {
+        const textContent =
+          table.rows[rowIndex].cells[cellIndex].textContent ?? ''
+        dataCsv += '"' + textContent.replaceAll('\n', '\\n') + '"'
         dataCsv +=
-          '"' + table.rows[i].cells[j].innerText.replace(/\n/g, '\\n') + '"'
-        if (j === table.rows[i].cells.length - 1) dataCsv += '\n'
-        else dataCsv += ','
+          cellIndex === table.rows[rowIndex].cells.length - 1 ? '\n' : ','
       }
     }
     return dataCsv
@@ -154,7 +167,8 @@ async function toCSV(page: Page) {
 }
 
 async function toTSV(page: Page) {
-  console.log('toTSV()')
+  const logger = Logger.configure('toTSV')
+  logger.info('toTSV()')
   return await page.evaluate(() => {
     const table: HTMLTableElement | null = document.querySelector(
       'table#cf-detail-table'
@@ -163,11 +177,17 @@ async function toTSV(page: Page) {
       return null
     }
     let dataTsv = ''
-    for (let i = 0; i < table.rows.length; i++) {
-      for (let j = 0; j < table.rows[i].cells.length; j++) {
-        dataTsv += table.rows[i].cells[j].innerText.replace(/\n/g, '\\n')
-        if (j === table.rows[i].cells.length - 1) dataTsv += '\n'
-        else dataTsv += '\t'
+    for (let rowIndex = 0; rowIndex < table.rows.length; rowIndex++) {
+      for (
+        let cellIndex = 0;
+        cellIndex < table.rows[rowIndex].cells.length;
+        cellIndex++
+      ) {
+        const textContent =
+          table.rows[rowIndex].cells[cellIndex].textContent ?? ''
+        dataTsv += textContent.replaceAll('\n', '\\n')
+        dataTsv +=
+          cellIndex === table.rows[rowIndex].cells.length - 1 ? '\n' : '\t'
       }
     }
     return dataTsv
@@ -189,7 +209,8 @@ function getYear(filedate: string, monthDay: string) {
 }
 
 async function saveAllCsv() {
-  console.log('saveAllCsv()')
+  const logger = Logger.configure('saveAllCsv')
+  logger.info('saveAllCsv()')
 
   const columns = {
     1: '日付',
@@ -199,7 +220,7 @@ async function saveAllCsv() {
     7: 'メモ',
   }
 
-  const files = fs.readdirSync('/data')
+  const files = fs.readdirSync('/data/csv/')
   const csvFiles = files.filter(
     (file) => file.endsWith('.csv') && /^\d{8}/.test(file)
   )
@@ -207,13 +228,13 @@ async function saveAllCsv() {
 
   const allCsvs = []
   for (const file of csvFiles) {
-    const tsv = fs.readFileSync(`/data/${file}`, 'utf8')
+    const tsv = fs.readFileSync(`/data/csv/${file}`, 'utf8')
     const rows = tsv.split('\n').slice(1)
     const filedate = file.split(' - ')[0] // 20210101
     const allCsv = rows
       .filter((row) => row.length > 0)
       .map((row) => row.split(',').map((col) => col.replace(/^"(.+)"$/, '$1')))
-      .map((row) => row.filter((_, i) => i in columns))
+      .map((row) => row.filter((_, index) => index in columns))
       .map((row) => {
         const date = row[0].split('(')[0]
         const year = getYear(filedate, date)
@@ -236,7 +257,8 @@ async function saveAllCsv() {
 }
 
 async function saveAllTsv() {
-  console.log('saveAllTsv()')
+  const logger = Logger.configure('saveAllTsv')
+  logger.info('saveAllTsv()')
 
   const columns = {
     1: '日付',
@@ -246,7 +268,7 @@ async function saveAllTsv() {
     7: 'メモ',
   }
 
-  const files = fs.readdirSync('/data')
+  const files = fs.readdirSync('/data/tsv/')
   const tsvFiles = files.filter(
     (file) => file.endsWith('.tsv') && /^\d{8}/.test(file)
   )
@@ -254,13 +276,13 @@ async function saveAllTsv() {
 
   const allTsvs = []
   for (const file of tsvFiles) {
-    const tsv = fs.readFileSync(`/data/${file}`, 'utf8')
+    const tsv = fs.readFileSync(`/data/tsv/${file}`, 'utf8')
     const rows = tsv.split('\n').slice(1)
     const filedate = file.split(' - ')[0] // 20210101
     const allTsv = rows
       .filter((row) => row.length > 0)
       .map((row) => row.split('\t'))
-      .map((row) => row.filter((_, i) => i in columns))
+      .map((row) => row.filter((_, index) => index in columns))
       .map((row) => {
         const date = row[0].split('(')[0]
         const year = getYear(filedate, date)
@@ -281,13 +303,33 @@ async function saveAllTsv() {
   )
 }
 
+function mkdirs() {
+  const directories = [
+    '/data/csv',
+    '/data/tsv',
+    '/data/screenshot',
+    '/data/html',
+  ]
+  for (const directory of directories) {
+    if (fs.existsSync(directory)) {
+      continue
+    }
+
+    fs.mkdirSync(directory)
+  }
+}
+
 async function main() {
+  const logger = Logger.configure('main')
+  logger.info('main()')
   const configPath = process.env.CONFIG_PATH ?? 'config.json'
   const config: Config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
 
   if (!config.moneyforward.base_url) {
     config.moneyforward.base_url = 'https://moneyforward.com'
   }
+
+  mkdirs()
 
   const puppeteerOptions: LaunchOptions &
     BrowserLaunchArgumentOptions &
@@ -305,7 +347,7 @@ async function main() {
       '--disable-accelerated-2d-canvas',
       '--no-first-run',
       '--no-zygote',
-      '--single-process', // <- this one doesn't works in Windows
+      '--single-process',
       '--disable-gpu',
     ],
     ...config.puppeteer,
@@ -321,12 +363,12 @@ async function main() {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0'
   )
   if (config.proxy && config.proxy.username && config.proxy.password) {
-    console.log('Login proxy')
+    logger.info('Login proxy')
     await page.authenticate({
       username: config.proxy.username,
       password: config.proxy.password,
     })
-    console.log('Login proxy... done')
+    logger.info('Login proxy... done')
   }
 
   await login(config, page)
@@ -339,10 +381,12 @@ async function main() {
 }
 
 ;(async () => {
+  const logger = Logger.configure('main')
   try {
     await main()
-  } catch (e) {
-    console.error(e)
+  } catch (error) {
+    logger.error('main() error', error as Error)
+    // eslint-disable-next-line unicorn/no-process-exit
     process.exit(1)
   }
 })()

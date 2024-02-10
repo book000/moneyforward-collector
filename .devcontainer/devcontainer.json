@@ -1,0 +1,45 @@
+{
+  "otherPortAttributes": {
+    "onAutoForward": "silent"
+  },
+  "name": "moneyforward-collector",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:0-18",
+  "waitFor": "postCreateCommand",
+  "customizations": {
+    "settings": {
+      "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": false
+        }
+      },
+      "editor.formatOnSave": true,
+      "git.branchProtection": [
+        "main",
+        "master"
+      ]
+    },
+    "extensions": [
+      "esbenp.prettier-vscode"
+    ],
+    "vscode": {
+      "settings": {
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": false
+          }
+        },
+        "editor.formatOnSave": true,
+        "git.branchProtection": [
+          "main",
+          "master"
+        ]
+      },
+      "extensions": [
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "postCreateCommand": "pnpm install"
+}
