@@ -27,7 +27,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "devDependencies": {
-    "@book000/node-utils": "1.12.66",
+    "@book000/node-utils": "1.12.67",
     "@types/node": "20.11.19",
     "@typescript-eslint/eslint-plugin": "7.0.2",
     "@typescript-eslint/parser": "7.0.2",
