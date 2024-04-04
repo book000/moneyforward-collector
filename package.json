@@ -41,7 +41,7 @@
     "prettier": "3.2.5",
     "puppeteer-core": "22.6.2",
     "run-z": "2.0.0",
-    "tsx": "4.7.1",
+    "tsx": "4.7.2",
     "typescript": "5.4.3"
   },
   "packageManager": "pnpm@8.15.6"
