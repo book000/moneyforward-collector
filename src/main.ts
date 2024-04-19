@@ -19,7 +19,7 @@ interface Config {
     username?: string
     password?: string
   }
-  puppeteer?: { [key: string]: unknown }
+  puppeteer?: Record<string, unknown>
 }
 
 async function login(config: Config, page: Page) {
@@ -58,6 +58,7 @@ async function cf(config: Config, page: Page) {
   await page.goto(`${url}/cf`)
   await new Promise((resolve) => setTimeout(resolve, 3000))
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const before = await page.$eval(
       '.fc-header-title h2',
@@ -141,57 +142,45 @@ async function save(config: Config, page: Page) {
 async function toCSV(page: Page) {
   const logger = Logger.configure('toCSV')
   logger.info('toCSV()')
-  return await page.evaluate(() => {
-    const table: HTMLTableElement | null = document.querySelector(
-      'table#cf-detail-table'
-    )
-    if (!table) {
-      return null
+  const table = await page.$('table#cf-detail-table')
+  if (!table) {
+    return null
+  }
+  let dataCsv = ''
+  const rows = await table.$$('tr')
+  for (const row of rows) {
+    const cells = await row.$$('th, td')
+    for (let index = 0; index < cells.length; index++) {
+      const textContent = await cells[index].evaluate(
+        (element) => element.textContent
+      )
+      dataCsv += `"${textContent?.replaceAll('\n', '\\n') ?? ''}"`
+      dataCsv += index === cells.length - 1 ? '\n' : ','
     }
-    let dataCsv = ''
-    for (let rowIndex = 0; rowIndex < table.rows.length; rowIndex++) {
-      for (
-        let cellIndex = 0;
-        cellIndex < table.rows[rowIndex].cells.length;
-        cellIndex++
-      ) {
-        const textContent =
-          table.rows[rowIndex].cells[cellIndex].textContent ?? ''
-        dataCsv += '"' + textContent.replaceAll('\n', '\\n') + '"'
-        dataCsv +=
-          cellIndex === table.rows[rowIndex].cells.length - 1 ? '\n' : ','
-      }
-    }
-    return dataCsv
-  })
+  }
+  return dataCsv
 }
 
 async function toTSV(page: Page) {
   const logger = Logger.configure('toTSV')
   logger.info('toTSV()')
-  return await page.evaluate(() => {
-    const table: HTMLTableElement | null = document.querySelector(
-      'table#cf-detail-table'
-    )
-    if (!table) {
-      return null
+  const table = await page.$('table#cf-detail-table')
+  if (!table) {
+    return null
+  }
+  const rows = await table.$$('tr')
+  let dataTsv = ''
+  for (const row of rows) {
+    const cells = await row.$$('th, td')
+    for (let index = 0; index < cells.length; index++) {
+      const cellText =
+        (await cells[index].evaluate((element) => element.textContent)) ?? ''
+      dataTsv += `"${cellText.replaceAll('\n', '\\n')}"`
+      dataTsv += index === cells.length - 1 ? '\n' : '\t'
     }
-    let dataTsv = ''
-    for (let rowIndex = 0; rowIndex < table.rows.length; rowIndex++) {
-      for (
-        let cellIndex = 0;
-        cellIndex < table.rows[rowIndex].cells.length;
-        cellIndex++
-      ) {
-        const textContent =
-          table.rows[rowIndex].cells[cellIndex].textContent ?? ''
-        dataTsv += textContent.replaceAll('\n', '\\n')
-        dataTsv +=
-          cellIndex === table.rows[rowIndex].cells.length - 1 ? '\n' : '\t'
-      }
-    }
-    return dataTsv
-  })
+  }
+
+  return dataTsv
 }
 
 function getYear(filedate: string, monthDay: string) {
@@ -201,14 +190,14 @@ function getYear(filedate: string, monthDay: string) {
   const year = filedate.slice(0, 4)
 
   // filedateが12月で、monthDayが1月の場合、yearは1年進む
-  if (filedate.slice(4, 6) === '12' && monthDay.slice(0, 2) === '01') {
+  if (filedate.slice(4, 6) === '12' && monthDay.startsWith('01')) {
     return String(Number(year) + 1)
   }
 
   return year
 }
 
-async function saveAllCsv() {
+function saveAllCsv() {
   const logger = Logger.configure('saveAllCsv')
   logger.info('saveAllCsv()')
 
@@ -256,7 +245,7 @@ async function saveAllCsv() {
   )
 }
 
-async function saveAllTsv() {
+function saveAllTsv() {
   const logger = Logger.configure('saveAllTsv')
   logger.info('saveAllTsv()')
 
@@ -347,13 +336,12 @@ async function main() {
       '--disable-accelerated-2d-canvas',
       '--no-first-run',
       '--no-zygote',
-      '--single-process',
       '--disable-gpu',
     ],
     ...config.puppeteer,
   }
 
-  if (config.proxy && config.proxy.server) {
+  if (config.proxy?.server) {
     puppeteerOptions.args?.push('--proxy-server=' + config.proxy.server)
   }
 
@@ -362,7 +350,7 @@ async function main() {
   await page.setUserAgent(
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0'
   )
-  if (config.proxy && config.proxy.username && config.proxy.password) {
+  if (config.proxy?.username && config.proxy.password) {
     logger.info('Login proxy')
     await page.authenticate({
       username: config.proxy.username,
@@ -376,8 +364,8 @@ async function main() {
 
   await browser.close()
 
-  await saveAllCsv()
-  await saveAllTsv()
+  saveAllCsv()
+  saveAllTsv()
 }
 
 ;(async () => {
