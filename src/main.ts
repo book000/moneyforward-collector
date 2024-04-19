@@ -1,4 +1,4 @@
-import fs from 'fs'
+import fs from 'node:fs'
 import puppeteer, {
   BrowserConnectOptions,
   BrowserLaunchArgumentOptions,
@@ -18,7 +18,7 @@ interface Config {
     username?: string
     password?: string
   }
-  puppeteer?: { [key: string]: unknown }
+  puppeteer?: Record<string, unknown>
 }
 
 async function login(config: Config, page: Page) {
@@ -34,18 +34,18 @@ async function login(config: Config, page: Page) {
     .waitForSelector('#sign_in_session_service_email', {
       visible: true,
     })
-    .then((el) => el?.type(mailAddress))
+    .then((element) => element?.type(mailAddress))
   await page
     .waitForSelector('#sign_in_session_service_password', {
       visible: true,
     })
-    .then((el) => el?.type(password))
+    .then((element) => element?.type(password))
   await new Promise((resolve) => setTimeout(resolve, 1000))
   await page
     .waitForSelector('#login-btn-sumit', {
       visible: true,
     })
-    .then((el) => el?.click())
+    .then((element) => element?.click())
   await new Promise((resolve) => setTimeout(resolve, 3000))
 }
 
@@ -53,12 +53,13 @@ async function cf(config: Config, page: Page) {
   console.log('cf()')
   const url = config.moneyforward.base_url
   await page.goto(`${url}/cf`)
-  await page.waitForTimeout(3000)
+  await new Promise((resolve) => setTimeout(resolve, 3000))
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const before = await page.$eval(
       '.fc-header-title h2',
-      (el) => el.textContent
+      (element) => element.textContent
     )
     console.log(`before: ${before}`)
 
@@ -66,9 +67,9 @@ async function cf(config: Config, page: Page) {
 
     await new Promise((resolve) => setTimeout(resolve, 5000))
     await page.evaluate(() => {
-      const prevElement = document.querySelector(`button.fc-button-prev`)
-      if (prevElement != null) {
-        prevElement.scrollIntoView()
+      const previousElement = document.querySelector(`button.fc-button-prev`)
+      if (previousElement != null) {
+        previousElement.scrollIntoView()
       }
     })
     await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -76,11 +77,11 @@ async function cf(config: Config, page: Page) {
       .waitForSelector('button.fc-button-prev', {
         visible: true,
       })
-      .then((el) => el?.click())
+      .then((element) => element?.click())
     await new Promise((resolve) => setTimeout(resolve, 5000))
     const after = await page.$eval(
       '.fc-header-title h2',
-      (el) => (el as unknown as { innerText: string }).innerText // ?
+      (element) => element.textContent
     )
     console.log(`after: ${after}`)
     if (before === after) {
@@ -95,7 +96,7 @@ async function save(config: Config, page: Page) {
   console.log('save()')
   const dateText = await page.$eval(
     '.fc-header-title h2',
-    (el) => (el as unknown as { innerText: string }).innerText // ?
+    (element) => element.textContent ?? ''
   )
   const dates = dateText.split(' - ')
   const startDate = new Date(dates[0])
@@ -118,60 +119,57 @@ async function save(config: Config, page: Page) {
   if (tsv) {
     fs.writeFileSync(`/data/${filename}.tsv`, tsv)
   }
-  page.screenshot({
+  await page.screenshot({
     path: `/data/${filename}.png`,
     fullPage: true,
   })
   let html = await page.evaluate(() => {
-    return document.getElementsByTagName('html')[0].innerHTML
+    return document.querySelectorAll('html')[0].innerHTML
   })
   const url = config.moneyforward.base_url
-  html = html.replace(/href="\//g, `href="${url}`)
-  html = html.replace(/src="\//g, `src="${url}`)
+  html = html.replaceAll('href="/', `href="${url}`)
+  html = html.replaceAll('src="/', `src="${url}`)
   fs.writeFileSync(`/data/${filename}.html`, html)
 }
 
 async function toCSV(page: Page) {
   console.log('toCSV()')
-  return await page.evaluate(() => {
-    const table: HTMLTableElement | null = document.querySelector(
-      'table#cf-detail-table'
-    )
-    if (!table) {
-      return null
+  const table = await page.$('table#cf-detail-table')
+  if (!table) {
+    return null
+  }
+  const rows = await table.$$('tr')
+  let dataCsv = ''
+  for (const row of rows) {
+    const cells = await row.$$('td')
+    for (let index = 0; index < cells.length; index++) {
+      const cellText =
+        (await cells[index].evaluate((element) => element.textContent)) ?? ''
+      dataCsv += `"${cellText.replaceAll('\n', '\\n')}"`
+      dataCsv += index === cells.length - 1 ? '\n' : ','
     }
-    let dataCsv = ''
-    for (let i = 0; i < table.rows.length; i++) {
-      for (let j = 0; j < table.rows[i].cells.length; j++) {
-        dataCsv +=
-          '"' + table.rows[i].cells[j].innerText.replace(/\n/g, '\\n') + '"'
-        if (j === table.rows[i].cells.length - 1) dataCsv += '\n'
-        else dataCsv += ','
-      }
-    }
-    return dataCsv
-  })
+  }
+  return dataCsv
 }
 
 async function toTSV(page: Page) {
   console.log('toTSV()')
-  return await page.evaluate(() => {
-    const table: HTMLTableElement | null = document.querySelector(
-      'table#cf-detail-table'
-    )
-    if (!table) {
-      return null
+  const table = await page.$('table#cf-detail-table')
+  if (!table) {
+    return null
+  }
+  const rows = await table.$$('tr')
+  let dataTsv = ''
+  for (const row of rows) {
+    const cells = await row.$$('td')
+    for (let index = 0; index < cells.length; index++) {
+      const cellText =
+        (await cells[index].evaluate((element) => element.textContent)) ?? ''
+      dataTsv += `"${cellText.replaceAll('\n', '\\n')}"`
+      dataTsv += index === cells.length - 1 ? '\n' : '\t'
     }
-    let dataTsv = ''
-    for (let i = 0; i < table.rows.length; i++) {
-      for (let j = 0; j < table.rows[i].cells.length; j++) {
-        dataTsv += table.rows[i].cells[j].innerText.replace(/\n/g, '\\n')
-        if (j === table.rows[i].cells.length - 1) dataTsv += '\n'
-        else dataTsv += '\t'
-      }
-    }
-    return dataTsv
-  })
+  }
+  return dataTsv
 }
 
 function getYear(filedate: string, monthDay: string) {
@@ -181,14 +179,14 @@ function getYear(filedate: string, monthDay: string) {
   const year = filedate.slice(0, 4)
 
   // filedateが12月で、monthDayが1月の場合、yearは1年進む
-  if (filedate.slice(4, 6) === '12' && monthDay.slice(0, 2) === '01') {
+  if (filedate.slice(4, 6) === '12' && monthDay.startsWith('01')) {
     return String(Number(year) + 1)
   }
 
   return year
 }
 
-async function saveAllCsv() {
+function saveAllCsv() {
   console.log('saveAllCsv()')
 
   const columns = {
@@ -213,7 +211,7 @@ async function saveAllCsv() {
     const allCsv = rows
       .filter((row) => row.length > 0)
       .map((row) => row.split(',').map((col) => col.replace(/^"(.+)"$/, '$1')))
-      .map((row) => row.filter((_, i) => i in columns))
+      .map((row) => row.filter((_, index) => index in columns))
       .map((row) => {
         const date = row[0].split('(')[0]
         const year = getYear(filedate, date)
@@ -235,7 +233,7 @@ async function saveAllCsv() {
   )
 }
 
-async function saveAllTsv() {
+function saveAllTsv() {
   console.log('saveAllTsv()')
 
   const columns = {
@@ -260,7 +258,7 @@ async function saveAllTsv() {
     const allTsv = rows
       .filter((row) => row.length > 0)
       .map((row) => row.split('\t'))
-      .map((row) => row.filter((_, i) => i in columns))
+      .map((row) => row.filter((_, index) => index in columns))
       .map((row) => {
         const date = row[0].split('(')[0]
         const year = getYear(filedate, date)
@@ -311,7 +309,7 @@ async function main() {
     ...config.puppeteer,
   }
 
-  if (config.proxy && config.proxy.server) {
+  if (config.proxy?.server) {
     puppeteerOptions.args?.push('--proxy-server=' + config.proxy.server)
   }
 
@@ -320,7 +318,7 @@ async function main() {
   await page.setUserAgent(
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0'
   )
-  if (config.proxy && config.proxy.username && config.proxy.password) {
+  if (config.proxy?.username && config.proxy.password) {
     console.log('Login proxy')
     await page.authenticate({
       username: config.proxy.username,
@@ -334,15 +332,16 @@ async function main() {
 
   await browser.close()
 
-  await saveAllCsv()
-  await saveAllTsv()
+  saveAllCsv()
+  saveAllTsv()
 }
 
 ;(async () => {
   try {
     await main()
-  } catch (e) {
-    console.error(e)
+  } catch (error) {
+    console.error(error)
+    // eslint-disable-next-line unicorn/no-process-exit
     process.exit(1)
   }
 })()
