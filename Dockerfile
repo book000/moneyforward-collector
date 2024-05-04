@@ -9,14 +9,12 @@ USER root
 # hadolint ignore=DL3018,DL3016
 RUN apk upgrade --no-cache --available && \
   apk update && \
-  apk add --no-cache \
-  x11vnc \
-  && \
-  apk add --update --no-cache tzdata && \
+  apk add --update --no-cache tzdata x11vnc && \
   cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
   echo "Asia/Tokyo" > /etc/timezone && \
   apk del tzdata && \
-  npm install -g pnpm
+  npm install -g corepack && \
+  corepack enable
 
 WORKDIR /app
 
@@ -33,7 +31,6 @@ COPY entrypoint.sh ./
 RUN chmod +x ./entrypoint.sh
 
 ENV TZ Asia/Tokyo
-ENV DISPLAY :99
 ENV NODE_ENV production
 ENV CONFIG_PATH /data/config.json
 ENV CHROMIUM_PATH /usr/bin/chromium-browser
