@@ -1,9 +1,11 @@
 {
-  "otherPortAttributes": {
-    "onAutoForward": "silent"
-  },
   "name": "moneyforward-collector",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-18",
+  "otherPortsAttributes": {
+    "onAutoForward": "silent"
+  },
+  "postCreateCommand": "corepack enable",
+  "postStartCommand": "pnpm install",
   "waitFor": "postCreateCommand",
   "customizations": {
     "settings": {
@@ -40,6 +42,5 @@
         "esbenp.prettier-vscode"
       ]
     }
-  },
-  "postCreateCommand": "pnpm install"
+  }
 }
