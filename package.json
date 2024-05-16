@@ -36,7 +36,7 @@
     "eslint-plugin-n": "17.7.0",
     "eslint-plugin-promise": "6.1.1",
     "prettier": "3.2.5",
-    "puppeteer-core": "22.8.2",
+    "puppeteer-core": "22.9.0",
     "run-z": "2.0.0",
     "tsx": "4.10.3",
     "typescript": "5.4.5"
