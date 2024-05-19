@@ -58,7 +58,6 @@ async function cf(config: Config, page: Page) {
   await page.goto(`${url}/cf`)
   await new Promise((resolve) => setTimeout(resolve, 3000))
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
     const before = await page.$eval(
       '.fc-header-title h2',
@@ -154,7 +153,7 @@ async function toCSV(page: Page) {
       const textContent = await cells[index].evaluate(
         (element) => element.textContent
       )
-      dataCsv += `"${textContent?.replaceAll('\n', '\\n') ?? ''}"`
+      dataCsv += `"${textContent?.replaceAll('\n', String.raw`\n`) ?? ''}"`
       dataCsv += index === cells.length - 1 ? '\n' : ','
     }
   }
@@ -175,7 +174,7 @@ async function toTSV(page: Page) {
     for (let index = 0; index < cells.length; index++) {
       const cellText =
         (await cells[index].evaluate((element) => element.textContent)) ?? ''
-      dataTsv += `"${cellText.replaceAll('\n', '\\n')}"`
+      dataTsv += `"${cellText.replaceAll('\n', String.raw`\n`)}"`
       dataTsv += index === cells.length - 1 ? '\n' : '\t'
     }
   }
