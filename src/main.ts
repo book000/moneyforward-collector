@@ -4,7 +4,7 @@ import puppeteer, {
   BrowserLaunchArgumentOptions,
   LaunchOptions,
   Page,
-  Product,
+  SupportedBrowser,
 } from 'puppeteer-core'
 import { Logger } from '@book000/node-utils'
 
@@ -322,7 +322,7 @@ async function main() {
   const puppeteerOptions: LaunchOptions &
     BrowserLaunchArgumentOptions &
     BrowserConnectOptions & {
-      product?: Product
+      supportedBrowser?: SupportedBrowser
       extraPrefsFirefox?: Record<string, unknown>
     } = {
     headless: true,
