@@ -27,16 +27,16 @@
     "preinstall": "npx only-allow pnpm"
   },
   "devDependencies": {
-    "@book000/eslint-config": "1.7.34",
+    "@book000/eslint-config": "1.7.35",
     "@book000/node-utils": "1.13.214",
-    "@types/node": "20.14.15",
+    "@types/node": "22.2.0",
     "eslint": "9.9.0",
     "eslint-config-standard": "17.1.0",
     "eslint-plugin-import": "2.29.1",
     "eslint-plugin-n": "17.10.2",
     "eslint-plugin-promise": "7.1.0",
     "prettier": "3.3.3",
-    "puppeteer-core": "22.15.0",
+    "puppeteer-core": "23.0.2",
     "run-z": "2.0.0",
     "tsx": "4.17.0",
     "typescript": "5.5.4"
