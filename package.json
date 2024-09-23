@@ -29,7 +29,7 @@
   "devDependencies": {
     "@book000/eslint-config": "1.7.57",
     "@book000/node-utils": "1.13.257",
-    "@types/node": "22.6.0",
+    "@types/node": "22.6.1",
     "eslint": "9.11.0",
     "eslint-config-standard": "17.1.0",
     "eslint-plugin-import": "2.30.0",
