@@ -1,8 +1,5 @@
 import fs from 'node:fs'
-import puppeteer, {
-  LaunchOptions,
-  Page,
-} from 'puppeteer-core'
+import puppeteer, { LaunchOptions, Page } from 'puppeteer-core'
 import { Logger } from '@book000/node-utils'
 
 interface Config {
