@@ -1,10 +1,7 @@
 import fs from 'node:fs'
 import puppeteer, {
-  BrowserConnectOptions,
-  BrowserLaunchArgumentOptions,
   LaunchOptions,
   Page,
-  SupportedBrowser,
 } from 'puppeteer-core'
 import { Logger } from '@book000/node-utils'
 
@@ -319,12 +316,7 @@ async function main() {
 
   mkdirs()
 
-  const puppeteerOptions: LaunchOptions &
-    BrowserLaunchArgumentOptions &
-    BrowserConnectOptions & {
-      supportedBrowser?: SupportedBrowser
-      extraPrefsFirefox?: Record<string, unknown>
-    } = {
+  const puppeteerOptions: LaunchOptions = {
     headless: true,
     slowMo: 100,
     executablePath: '/usr/bin/chromium-browser',
