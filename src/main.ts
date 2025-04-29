@@ -45,47 +45,48 @@ async function login(config: Config, page: Page) {
   await new Promise((resolve) => setTimeout(resolve, 3000))
 }
 
-async function cf(config: Config, page: Page) {
-  const logger = Logger.configure('cf')
-  logger.info('cf()')
-  const url = config.moneyforward.base_url
-  await page.goto(`${url}/cf`)
-  await new Promise((resolve) => setTimeout(resolve, 3000))
-
-  while (true) {
-    const before = await page.$eval(
-      '.fc-header-title h2',
-      (element) => element.textContent
-    )
-    logger.info(`before: ${before}`)
-
-    await save(config, page)
-
-    await new Promise((resolve) => setTimeout(resolve, 5000))
-    await page.evaluate(() => {
-      const previousElement = document.querySelector(`button.fc-button-prev`)
-      if (previousElement != null) {
-        previousElement.scrollIntoView()
-      }
-    })
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    await page
-      .waitForSelector('button.fc-button-prev', {
-        visible: true,
-      })
-      .then((element) => element?.click())
-    await new Promise((resolve) => setTimeout(resolve, 5000))
-    const after = await page.$eval(
-      '.fc-header-title h2',
-      (element) => element.textContent // ?
-    )
-    logger.info(`after: ${after}`)
-    if (before === after) {
-      logger.info(`before == after. break;`)
-      break
-    }
-    logger.info(`before != after. next`)
+async function toCSV(page: Page) {
+  const logger = Logger.configure('toCSV')
+  logger.info('toCSV()')
+  const table = await page.$('table#cf-detail-table')
+  if (!table) {
+    return null
   }
+  let dataCsv = ''
+  const rows = await table.$$('tr')
+  for (const row of rows) {
+    const cells = await row.$$('th, td')
+    for (let index = 0; index < cells.length; index++) {
+      const textContent = await cells[index].evaluate(
+        (element) => element.textContent
+      )
+      dataCsv += `"${textContent?.replaceAll('\n', String.raw`\n`) ?? ''}"`
+      dataCsv += index === cells.length - 1 ? '\n' : ','
+    }
+  }
+  return dataCsv
+}
+
+async function toTSV(page: Page) {
+  const logger = Logger.configure('toTSV')
+  logger.info('toTSV()')
+  const table = await page.$('table#cf-detail-table')
+  if (!table) {
+    return null
+  }
+  const rows = await table.$$('tr')
+  let dataTsv = ''
+  for (const row of rows) {
+    const cells = await row.$$('th, td')
+    for (let index = 0; index < cells.length; index++) {
+      const cellText =
+        (await cells[index].evaluate((element) => element.textContent)) ?? ''
+      dataTsv += `"${cellText.replaceAll('\n', String.raw`\n`)}"`
+      dataTsv += index === cells.length - 1 ? '\n' : '\t'
+    }
+  }
+
+  return dataTsv
 }
 
 async function save(config: Config, page: Page) {
@@ -132,48 +133,47 @@ async function save(config: Config, page: Page) {
   fs.writeFileSync(`/data/html/${filename}.html`, html)
 }
 
-async function toCSV(page: Page) {
-  const logger = Logger.configure('toCSV')
-  logger.info('toCSV()')
-  const table = await page.$('table#cf-detail-table')
-  if (!table) {
-    return null
-  }
-  let dataCsv = ''
-  const rows = await table.$$('tr')
-  for (const row of rows) {
-    const cells = await row.$$('th, td')
-    for (let index = 0; index < cells.length; index++) {
-      const textContent = await cells[index].evaluate(
-        (element) => element.textContent
-      )
-      dataCsv += `"${textContent?.replaceAll('\n', String.raw`\n`) ?? ''}"`
-      dataCsv += index === cells.length - 1 ? '\n' : ','
-    }
-  }
-  return dataCsv
-}
+async function cf(config: Config, page: Page) {
+  const logger = Logger.configure('cf')
+  logger.info('cf()')
+  const url = config.moneyforward.base_url
+  await page.goto(`${url}/cf`)
+  await new Promise((resolve) => setTimeout(resolve, 3000))
 
-async function toTSV(page: Page) {
-  const logger = Logger.configure('toTSV')
-  logger.info('toTSV()')
-  const table = await page.$('table#cf-detail-table')
-  if (!table) {
-    return null
-  }
-  const rows = await table.$$('tr')
-  let dataTsv = ''
-  for (const row of rows) {
-    const cells = await row.$$('th, td')
-    for (let index = 0; index < cells.length; index++) {
-      const cellText =
-        (await cells[index].evaluate((element) => element.textContent)) ?? ''
-      dataTsv += `"${cellText.replaceAll('\n', String.raw`\n`)}"`
-      dataTsv += index === cells.length - 1 ? '\n' : '\t'
-    }
-  }
+  while (true) {
+    const before = await page.$eval(
+      '.fc-header-title h2',
+      (element) => element.textContent
+    )
+    logger.info(`before: ${before}`)
 
-  return dataTsv
+    await save(config, page)
+
+    await new Promise((resolve) => setTimeout(resolve, 5000))
+    await page.evaluate(() => {
+      const previousElement = document.querySelector(`button.fc-button-prev`)
+      if (previousElement != null) {
+        previousElement.scrollIntoView()
+      }
+    })
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+    await page
+      .waitForSelector('button.fc-button-prev', {
+        visible: true,
+      })
+      .then((element) => element?.click())
+    await new Promise((resolve) => setTimeout(resolve, 5000))
+    const after = await page.$eval(
+      '.fc-header-title h2',
+      (element) => element.textContent // ?
+    )
+    logger.info(`after: ${after}`)
+    if (before === after) {
+      logger.info(`before == after. break;`)
+      break
+    }
+    logger.info(`before != after. next`)
+  }
 }
 
 function getYear(filedate: string, monthDay: string) {
@@ -307,9 +307,7 @@ async function main() {
   const configPath = process.env.CONFIG_PATH ?? 'config.json'
   const config: Config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
 
-  if (!config.moneyforward.base_url) {
-    config.moneyforward.base_url = 'https://moneyforward.com'
-  }
+  config.moneyforward.base_url ??= 'https://moneyforward.com'
 
   mkdirs()
 
