@@ -27,7 +27,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "devDependencies": {
-    "@book000/eslint-config": "1.8.77",
+    "@book000/eslint-config": "1.8.80",
     "@book000/node-utils": "1.17.1",
     "@types/node": "22.15.29",
     "eslint": "9.28.0",
