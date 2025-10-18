@@ -57,10 +57,9 @@ async function toCSV(page: Page) {
   for (const row of rows) {
     const cells = await row.$$('th, td')
     for (let index = 0; index < cells.length; index++) {
-      const textContent = await cells[index].evaluate(
-        (element) => element.textContent
-      )
-      dataCsv += `"${textContent?.replaceAll('\n', String.raw`\n`) ?? ''}"`
+      const textContent =
+        (await cells[index].evaluate((element) => element.textContent)) || ''
+      dataCsv += `"${textContent.replaceAll('\n', String.raw`\n`)}"`
       dataCsv += index === cells.length - 1 ? '\n' : ','
     }
   }
@@ -80,7 +79,7 @@ async function toTSV(page: Page) {
     const cells = await row.$$('th, td')
     for (let index = 0; index < cells.length; index++) {
       const cellText =
-        (await cells[index].evaluate((element) => element.textContent)) ?? ''
+        (await cells[index].evaluate((element) => element.textContent)) || ''
       dataTsv += `"${cellText.replaceAll('\n', String.raw`\n`)}"`
       dataTsv += index === cells.length - 1 ? '\n' : '\t'
     }
@@ -226,7 +225,7 @@ function saveAllCsv() {
       })
       .map((row) => row.map((col) => `"${col}"`))
       .map((row) => row.join(','))
-      .reverse()
+      .toReversed()
       .join('\n')
 
     allCsvs.push(allCsv)
@@ -273,7 +272,7 @@ function saveAllTsv() {
         return [`${year}/${month}/${day}`, ...row.slice(1)]
       })
       .map((row) => row.join('\t'))
-      .reverse()
+      .toReversed()
       .join('\n')
 
     allTsvs.push(allTsv)
@@ -333,9 +332,10 @@ async function main() {
 
   const browser = await puppeteer.launch(puppeteerOptions)
   const page = await browser.newPage()
-  await page.setUserAgent(
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0'
-  )
+  await page.setUserAgent({
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0',
+  })
   if (config.proxy?.username && config.proxy.password) {
     logger.info('Login proxy')
     await page.authenticate({
