@@ -36,8 +36,8 @@ importers:
         specifier: 3.6.2
         version: 3.6.2
       puppeteer-core:
-        specifier: 24.30.0
-        version: 24.30.0
+        specifier: 24.31.0
+        version: 24.31.0
       run-z:
         specifier: 2.1.0
         version: 2.1.0
@@ -1499,8 +1499,8 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
-  puppeteer-core@24.30.0:
-    resolution: {integrity: sha512-2S3Smy0t0W4wJnNvDe7W0bE7wDmZjfZ3ljfMgJd6hn2Hq/f0jgN+x9PULZo2U3fu5UUIJ+JP8cNUGllu8P91Pg==}
+  puppeteer-core@24.31.0:
+    resolution: {integrity: sha512-pnAohhSZipWQoFpXuGV7xCZfaGhqcBR9C4pVrU0QSrcMi7tQMH9J9lDBqBvyMAHQqe8HCARuREqFuVKRQOgTvg==}
     engines: {node: '>=18'}
 
   queue-microtask@1.2.3:
@@ -1811,8 +1811,8 @@ packages:
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
-  webdriver-bidi-protocol@0.3.8:
-    resolution: {integrity: sha512-21Yi2GhGntMc671vNBCjiAeEVknXjVRoyu+k+9xOMShu+ZQfpGQwnBqbNz/Sv4GXZ6JmutlPAi2nIJcrymAWuQ==}
+  webdriver-bidi-protocol@0.3.9:
+    resolution: {integrity: sha512-uIYvlRQ0PwtZR1EzHlTMol1G0lAlmOe6wPykF9a77AK3bkpvZHzIVxRE2ThOx5vjy2zISe0zhwf5rzuUfbo1PQ==}
 
   which-boxed-primitive@1.1.1:
     resolution: {integrity: sha512-TbX3mj8n0odCBFVlY8AxkqcHASw3L60jIuF8jFP78az3C2YhmGvqbHBpAjTRH2/xqYunrJ9g1jSyjCjpoWzIAA==}
@@ -3464,14 +3464,14 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  puppeteer-core@24.30.0:
+  puppeteer-core@24.31.0:
     dependencies:
       '@puppeteer/browsers': 2.10.13
       chromium-bidi: 11.0.0(devtools-protocol@0.0.1521046)
       debug: 4.4.3
       devtools-protocol: 0.0.1521046
       typed-query-selector: 2.12.0
-      webdriver-bidi-protocol: 0.3.8
+      webdriver-bidi-protocol: 0.3.9
       ws: 8.18.3
     transitivePeerDependencies:
       - bare-abort-controller
@@ -3870,7 +3870,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  webdriver-bidi-protocol@0.3.8: {}
+  webdriver-bidi-protocol@0.3.9: {}
 
   which-boxed-primitive@1.1.1:
     dependencies:
