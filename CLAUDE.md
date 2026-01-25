@@ -123,7 +123,7 @@ pnpm fix:eslint     # ESLint 自動修正
 
 ### アーキテクチャサマリー
 
-- **シングルファイル設計**: すべてのロジックは `src/main.ts` に集約（367 行）
+- **シングルファイル設計**: すべてのロジックは `src/main.ts` に集約
 - **モノリシック構造**: ネストされたモジュール構造なし
 - **Docker コンテナ化**: zenika/alpine-chrome ベースで実行
 - **定期実行**: entrypoint.sh により 1 時間ごとに自動再実行
@@ -148,7 +148,7 @@ moneyforward-collector/
 
 | ファイル | 目的 |
 |---------|------|
-| `src/main.ts` | すべてのアプリケーションロジックを含む単一ソースファイル（367 行） |
+| `src/main.ts` | すべてのアプリケーションロジックを含む単一ソースファイル |
 | `package.json` | プロジェクトメタデータ、スクリプト、依存関係 |
 | `tsconfig.json` | TypeScript コンパイラ設定 |
 | `eslint.config.mjs` | ESLint 設定（@book000/eslint-config 継承） |
@@ -191,7 +191,6 @@ moneyforward-collector/
 
 以下のドキュメントを更新する場合は、同時に更新すること:
 
-- `README.md`: プロジェクト概要、使用方法、設定方法
 - `package.json`: 依存関係、スクリプト、バージョン情報
 - `.github/copilot-instructions.md`: GitHub Copilot 向けプロンプトファイル
 - `CLAUDE.md`（このファイル）: Claude Code 向けプロンプトファイル

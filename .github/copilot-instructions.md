@@ -79,7 +79,6 @@ pnpm fix:eslint     # ESLint 自動修正
 
 以下のドキュメントを更新する場合は、同時に更新すること:
 
-- `README.md`: プロジェクト概要、使用方法、設定方法
 - `package.json`: 依存関係、スクリプト、バージョン情報
 - `.github/copilot-instructions.md`（このファイル）: 新機能追加時
 - `CLAUDE.md`、`AGENTS.md`、`GEMINI.md`: AI エージェント向けプロンプトファイル

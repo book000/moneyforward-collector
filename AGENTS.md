@@ -67,7 +67,7 @@ MoneyForward の入出金明細を自動収集し、CSV/TSV/HTML/PNG 形式で�
 
 以下を確認してプロジェクトを理解する:
 
-- `README.md`: プロジェクト概要、使用方法
+- `AGENTS.md`: プロジェクト概要、使用方法
 - `package.json`: 依存関係、スクリプト
 - `src/main.ts`: 全アプリケーションロジック（シングルファイル設計）
 
@@ -145,14 +145,14 @@ pnpm dev
 
 ### アーキテクチャ
 
-- **シングルファイル設計**: すべてのロジックは `src/main.ts` に集約（367 行）
+- **シングルファイル設計**: すべてのロジックは `src/main.ts` に集約
 - **モノリシック構造**: ネストされたモジュール構造なし
 
 ### 設定ファイル
 
 `CONFIG_PATH` 環境変数で指定する JSON 形式:
 
-```json
+```jsonc
 {
   "moneyforward": {
     "base_url": "https://moneyforward.com",  // オプション
