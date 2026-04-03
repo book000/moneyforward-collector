@@ -2,6 +2,9 @@ import fs from 'node:fs'
 import puppeteer, { LaunchOptions, Page } from 'puppeteer-core'
 import { Logger } from '@book000/node-utils'
 
+/**
+ * 実行時設定を表します。
+ */
 interface Config {
   moneyforward: {
     base_url?: string
@@ -16,6 +19,12 @@ interface Config {
   puppeteer?: Record<string, unknown>
 }
 
+/**
+ * MoneyForward にログインします。
+ *
+ * @param config 実行時設定
+ * @param page Puppeteer のページ
+ */
 async function login(config: Config, page: Page) {
   const logger = Logger.configure('login')
   logger.info('login()')
@@ -45,6 +54,12 @@ async function login(config: Config, page: Page) {
   await new Promise((resolve) => setTimeout(resolve, 3000))
 }
 
+/**
+ * 明細テーブルを CSV 形式へ変換します。
+ *
+ * @param page Puppeteer のページ
+ * @returns CSV 文字列。テーブルがない場合は `null`
+ */
 async function toCSV(page: Page) {
   const logger = Logger.configure('toCSV')
   logger.info('toCSV()')
@@ -66,6 +81,12 @@ async function toCSV(page: Page) {
   return dataCsv
 }
 
+/**
+ * 明細テーブルを TSV 形式へ変換します。
+ *
+ * @param page Puppeteer のページ
+ * @returns TSV 文字列。テーブルがない場合は `null`
+ */
 async function toTSV(page: Page) {
   const logger = Logger.configure('toTSV')
   logger.info('toTSV()')
@@ -88,6 +109,12 @@ async function toTSV(page: Page) {
   return dataTsv
 }
 
+/**
+ * 現在表示中の明細を各形式で保存します。
+ *
+ * @param config 実行時設定
+ * @param page Puppeteer のページ
+ */
 async function save(config: Config, page: Page) {
   const logger = Logger.configure('save')
   logger.info('save()')
@@ -132,6 +159,12 @@ async function save(config: Config, page: Page) {
   fs.writeFileSync(`/data/html/${filename}.html`, html)
 }
 
+/**
+ * 収集対象の期間を遡りながら明細を保存します。
+ *
+ * @param config 実行時設定
+ * @param page Puppeteer のページ
+ */
 async function cf(config: Config, page: Page) {
   const logger = Logger.configure('cf')
   logger.info('cf()')
@@ -175,13 +208,20 @@ async function cf(config: Config, page: Page) {
   }
 }
 
+/**
+ * 集約用の日付に対応する年を決定します。
+ *
+ * @param filedate 保存ファイル名に含まれる開始日
+ * @param monthDay 明細上の日付表記
+ * @returns 補正後の年
+ */
 function getYear(filedate: string, monthDay: string) {
-  // filedate: 20201210 monthDay: 01/01(金) -> 2021
-  // filedate: 20210210 monthDay: 02/13(金) -> 2021
+  // filedate: 20201210, monthDay: 01/01(金) -> 2021
+  // filedate: 20210210, monthDay: 02/13(金) -> 2021
 
   const year = filedate.slice(0, 4)
 
-  // filedateが12月で、monthDayが1月の場合、yearは1年進む
+  // filedate が 12 月で、monthDay が 1 月の場合、year は 1 年進む
   if (filedate.slice(4, 6) === '12' && monthDay.startsWith('01')) {
     return String(Number(year) + 1)
   }
@@ -189,6 +229,9 @@ function getYear(filedate: string, monthDay: string) {
   return year
 }
 
+/**
+ * 保存済みの CSV を集約して 1 つのファイルへまとめます。
+ */
 function saveAllCsv() {
   const logger = Logger.configure('saveAllCsv')
   logger.info('saveAllCsv()')
@@ -237,6 +280,9 @@ function saveAllCsv() {
   )
 }
 
+/**
+ * 保存済みの TSV を集約して 1 つのファイルへまとめます。
+ */
 function saveAllTsv() {
   const logger = Logger.configure('saveAllTsv')
   logger.info('saveAllTsv()')
@@ -284,6 +330,9 @@ function saveAllTsv() {
   )
 }
 
+/**
+ * 出力先ディレクトリを作成します。
+ */
 function mkdirs() {
   const directories = [
     '/data/csv',
@@ -300,6 +349,9 @@ function mkdirs() {
   }
 }
 
+/**
+ * アプリケーションのメイン処理を実行します。
+ */
 async function main() {
   const logger = Logger.configure('main')
   logger.info('main()')
@@ -358,8 +410,8 @@ async function main() {
   const logger = Logger.configure('main')
   try {
     await main()
-  } catch (error) {
-    logger.error('main() error', error as Error)
+  } catch (err) {
+    logger.error('main() error', err as Error)
     // eslint-disable-next-line unicorn/no-process-exit
     process.exit(1)
   }
