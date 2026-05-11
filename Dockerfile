@@ -18,11 +18,11 @@ RUN apk upgrade --no-cache --available && \
 
 WORKDIR /app
 
-COPY pnpm-lock.yaml ./
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm fetch
 
-COPY package.json tsconfig.json ./
+COPY tsconfig.json ./
 COPY src src
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --offline
