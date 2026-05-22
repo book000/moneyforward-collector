@@ -1,8 +1,8 @@
-# node:24-alpine から Node.js 24 のバイナリを取得するためのステージ
+# node:24.15.0-alpine から Node.js 24 のバイナリを取得するためのステージ
 # zenika/alpine-chrome のベース (Alpine 3.19) には Node.js 20 しか含まれないため、
 # pnpm v11 が必要とする node:sqlite (Node.js 22.5+) に対応するために Node.js 24 を使用する
-# プロジェクトの .node-version で指定されている Node.js 24 系と統一する
-FROM node:24-alpine AS node24
+# プロジェクトの .node-version (24.15.0) に合わせてパッチバージョンまで固定する
+FROM node:24.15.0-alpine AS node24
 
 FROM zenika/alpine-chrome:with-puppeteer-xvfb AS runner
 
