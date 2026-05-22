@@ -1,4 +1,16 @@
+# node:22-alpine から Node.js 22 のバイナリを取得するためのステージ
+# zenika/alpine-chrome のベース (Alpine 3.19) には Node.js 20 しか含まれないため、
+# pnpm v11 が必要とする node:sqlite (Node.js 22.5+) に対応するために Node.js 22 を使用する
+FROM node:22-alpine AS node22
+
 FROM zenika/alpine-chrome:with-puppeteer-xvfb AS runner
+
+# node:22-alpine から Node.js 22 のバイナリ・ライブラリ一式をコピーして上書きする
+COPY --from=node22 /usr/local/bin/node /usr/local/bin/node
+COPY --from=node22 /usr/local/bin/npm /usr/local/bin/npm
+COPY --from=node22 /usr/local/bin/npx /usr/local/bin/npx
+COPY --from=node22 /usr/local/bin/corepack /usr/local/bin/corepack
+COPY --from=node22 /usr/local/lib/node_modules /usr/local/lib/node_modules
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME/bin:$PATH"
@@ -13,7 +25,6 @@ RUN apk upgrade --no-cache --available && \
   cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
   echo "Asia/Tokyo" > /etc/timezone && \
   apk del tzdata && \
-  npm install -g corepack@latest && \
   corepack enable
 
 WORKDIR /app
