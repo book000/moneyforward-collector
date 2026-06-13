@@ -124,7 +124,8 @@ async function save(config: Config, page: Page) {
     fullPage: true,
   })
   let html = await page.evaluate(() => {
-    return document.querySelectorAll('html')[0].innerHTML
+    // querySelectorAll('html')[0] の代わりに documentElement を使用する (unicorn/no-incorrect-query-selector)
+    return document.documentElement.innerHTML
   })
   const url = config.moneyforward.base_url
   html = html.replaceAll('href="/', `href="${url}`)
@@ -211,16 +212,16 @@ function saveAllCsv() {
   for (const file of csvFiles) {
     const tsv = fs.readFileSync(`/data/csv/${file}`, 'utf8')
     const rows = tsv.split('\n').slice(1)
-    const filedate = file.split(' - ')[0] // 20210101
+    const filedate = file.split(' - ', 1)[0] // 20210101
     const allCsv = rows
       .filter((row) => row.length > 0)
       .map((row) => row.split(',').map((col) => col.replace(/^"(.+)"$/, '$1')))
       .map((row) => row.filter((_, index) => index in columns))
       .map((row) => {
-        const date = row[0].split('(')[0]
+        const date = row[0].split('(', 1)[0]
         const year = getYear(filedate, date)
-        const month = date.split('/')[0]
-        const day = date.split('/')[1]
+        // date.split('/', 2) を 1 度だけ呼び出してデストラクチャリングで取得する
+        const [month, day] = date.split('/', 2)
         return [`${year}/${month}/${day}`, ...row.slice(1)]
       })
       .map((row) => row.map((col) => `"${col}"`))
@@ -259,16 +260,16 @@ function saveAllTsv() {
   for (const file of tsvFiles) {
     const tsv = fs.readFileSync(`/data/tsv/${file}`, 'utf8')
     const rows = tsv.split('\n').slice(1)
-    const filedate = file.split(' - ')[0] // 20210101
+    const filedate = file.split(' - ', 1)[0] // 20210101
     const allTsv = rows
       .filter((row) => row.length > 0)
       .map((row) => row.split('\t'))
       .map((row) => row.filter((_, index) => index in columns))
       .map((row) => {
-        const date = row[0].split('(')[0]
+        const date = row[0].split('(', 1)[0]
         const year = getYear(filedate, date)
-        const month = date.split('/')[0]
-        const day = date.split('/')[1]
+        // date.split('/', 2) を 1 度だけ呼び出してデストラクチャリングで取得する
+        const [month, day] = date.split('/', 2)
         return [`${year}/${month}/${day}`, ...row.slice(1)]
       })
       .map((row) => row.join('\t'))
