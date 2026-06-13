@@ -220,8 +220,8 @@ function saveAllCsv() {
       .map((row) => {
         const date = row[0].split('(', 1)[0]
         const year = getYear(filedate, date)
-        const month = date.split('/', 2)[0]
-        const day = date.split('/', 2)[1]
+        // date.split('/', 2) を 1 度だけ呼び出してデストラクチャリングで取得する
+        const [month, day] = date.split('/', 2)
         return [`${year}/${month}/${day}`, ...row.slice(1)]
       })
       .map((row) => row.map((col) => `"${col}"`))
@@ -268,8 +268,8 @@ function saveAllTsv() {
       .map((row) => {
         const date = row[0].split('(', 1)[0]
         const year = getYear(filedate, date)
-        const month = date.split('/', 2)[0]
-        const day = date.split('/', 2)[1]
+        // date.split('/', 2) を 1 度だけ呼び出してデストラクチャリングで取得する
+        const [month, day] = date.split('/', 2)
         return [`${year}/${month}/${day}`, ...row.slice(1)]
       })
       .map((row) => row.join('\t'))
