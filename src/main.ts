@@ -26,22 +26,21 @@ async function login(config: Config, page: Page) {
   const mailAddress = config.moneyforward.mail_address
   const password = config.moneyforward.password
 
-  await page
-    .waitForSelector('#sign_in_session_service_email', {
-      visible: true,
-    })
-    .then((element) => element?.type(mailAddress))
-  await page
-    .waitForSelector('#sign_in_session_service_password', {
-      visible: true,
-    })
-    .then((element) => element?.type(password))
+  const mailAddressElement = await page.waitForSelector(
+    '#sign_in_session_service_email',
+    { visible: true }
+  )
+  await mailAddressElement?.type(mailAddress)
+  const passwordElement = await page.waitForSelector(
+    '#sign_in_session_service_password',
+    { visible: true }
+  )
+  await passwordElement?.type(password)
   await new Promise((resolve) => setTimeout(resolve, 1000))
-  await page
-    .waitForSelector('#login-btn-sumit', {
-      visible: true,
-    })
-    .then((element) => element?.click())
+  const loginButtonElement = await page.waitForSelector('#login-btn-sumit', {
+    visible: true,
+  })
+  await loginButtonElement?.click()
   await new Promise((resolve) => setTimeout(resolve, 3000))
 }
 
@@ -128,8 +127,10 @@ async function save(config: Config, page: Page) {
     return document.documentElement.innerHTML
   })
   const url = config.moneyforward.base_url
-  html = html.replaceAll('href="/', `href="${url}`)
-  html = html.replaceAll('src="/', `src="${url}`)
+  // url に $ を含むパターンが存在すると replaceAll の置換文字列パターンとして
+  // 解釈されてしまうため、関数形式で渡して置換文字列パターンの解釈を回避する
+  html = html.replaceAll('href="/', () => `href="${url}`)
+  html = html.replaceAll('src="/', () => `src="${url}`)
   fs.writeFileSync(`/data/html/${filename}.html`, html)
 }
 
@@ -157,11 +158,11 @@ async function cf(config: Config, page: Page) {
       }
     })
     await new Promise((resolve) => setTimeout(resolve, 2000))
-    await page
-      .waitForSelector('button.fc-button-prev', {
-        visible: true,
-      })
-      .then((element) => element?.click())
+    const previousButtonElement = await page.waitForSelector(
+      'button.fc-button-prev',
+      { visible: true }
+    )
+    await previousButtonElement?.click()
     await new Promise((resolve) => setTimeout(resolve, 5000))
     const after = await page.$eval(
       '.fc-header-title h2',
@@ -216,7 +217,7 @@ function saveAllCsv() {
     const allCsv = rows
       .filter((row) => row.length > 0)
       .map((row) => row.split(',').map((col) => col.replace(/^"(.+)"$/, '$1')))
-      .map((row) => row.filter((_, index) => index in columns))
+      .map((row) => row.filter((_, index) => Object.hasOwn(columns, index)))
       .map((row) => {
         const date = row[0].split('(', 1)[0]
         const year = getYear(filedate, date)
@@ -264,7 +265,7 @@ function saveAllTsv() {
     const allTsv = rows
       .filter((row) => row.length > 0)
       .map((row) => row.split('\t'))
-      .map((row) => row.filter((_, index) => index in columns))
+      .map((row) => row.filter((_, index) => Object.hasOwn(columns, index)))
       .map((row) => {
         const date = row[0].split('(', 1)[0]
         const year = getYear(filedate, date)
