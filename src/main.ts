@@ -128,8 +128,8 @@ async function save(config: Config, page: Page) {
     return document.documentElement.innerHTML
   })
   const url = config.moneyforward.base_url
-  html = html.replaceAll('href="/', `href="${url}`)
-  html = html.replaceAll('src="/', `src="${url}`)
+  html = html.replaceAll('href="/', () => `href="${url}`)
+  html = html.replaceAll('src="/', () => `src="${url}`)
   fs.writeFileSync(`/data/html/${filename}.html`, html)
 }
 
@@ -216,7 +216,7 @@ function saveAllCsv() {
     const allCsv = rows
       .filter((row) => row.length > 0)
       .map((row) => row.split(',').map((col) => col.replace(/^"(.+)"$/, '$1')))
-      .map((row) => row.filter((_, index) => index in columns))
+      .map((row) => row.filter((_, index) => Object.hasOwn(columns, index)))
       .map((row) => {
         const date = row[0].split('(', 1)[0]
         const year = getYear(filedate, date)
@@ -264,7 +264,7 @@ function saveAllTsv() {
     const allTsv = rows
       .filter((row) => row.length > 0)
       .map((row) => row.split('\t'))
-      .map((row) => row.filter((_, index) => index in columns))
+      .map((row) => row.filter((_, index) => Object.hasOwn(columns, index)))
       .map((row) => {
         const date = row[0].split('(', 1)[0]
         const year = getYear(filedate, date)
