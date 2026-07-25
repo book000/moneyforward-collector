@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import puppeteer, { LaunchOptions, Page } from 'puppeteer-core'
-import { Logger } from '@book000/node-utils'
+import { ErrorReporter, Logger } from '@book000/node-utils'
 
 interface Config {
   moneyforward: {
@@ -361,6 +361,8 @@ async function main() {
     await main()
   } catch (error) {
     logger.error('main() error', error as Error)
+    // SENTRY_DSN が設定されている場合、GlitchTip へタグ付きでエラーを送信する
+    ErrorReporter.captureException(error as Error, { phase: 'main' })
     // eslint-disable-next-line unicorn/no-process-exit
     process.exit(1)
   }
