@@ -29,6 +29,7 @@ MoneyForward の入出金明細を Puppeteer で自動収集し、CSV/TSV/HTML/P
 - **エラーハンドリング**: Puppeteer 操作や外部サイトへの依存箇所で try-catch により適切に捕捉・ログ出力されているか。定期実行のため 1 回の失敗で全体が停止しない設計か。
 - **型安全性**: `skipLibCheck` や `any` による型エラーの握りつぶしがないか（strict モード維持）。
 - **JSDoc**: 関数・インターフェースに日本語の JSDoc が付与・更新されているか。
+- **エラー報告への機密情報混入**: `logger.error()` および `ErrorReporter.captureException()` は、`SENTRY_DSN` 設定時に GlitchTip (Sentry) へエラーを転送する意図的な実装である。`ErrorReporter.captureException` に渡す `context`/`extra` や、`logger.error()` でログ出力するエラーオブジェクトに、パスワード・個人情報などの機密情報が含まれていないか確認する。
 
 ## フラグすべきでない既知パターン
 
@@ -36,8 +37,10 @@ MoneyForward の入出金明細を Puppeteer で自動収集し、CSV/TSV/HTML/P
 - **テストの不在**: テストフレームワークは導入しておらず、動作確認は実 MoneyForward 環境での手動テストで行う。「テストを追加すべき」という一般論の指摘は不要。
 - **`|| true` による継続**: `entrypoint.sh` の `pnpm start || true` は定期実行で失敗しても継続させる意図的な設計。
 - **Renovate PR**: Renovate が作成した依存更新 PR への追加コミットは行わない運用。
+- **`logger.error()` と `ErrorReporter.captureException()` の併用**: 同一の catch ブロック内で両方を呼び出すのは意図的な設計であり、重複した指摘は不要。前者は `SENTRY_DSN` 設定時に winston トランスポート経由で自動転送され、後者はタグ付きの構造化コンテキストを付与した明示的な報告を行うという別の役割を持つ。
 
 ## セキュリティ
 
 - 認証情報・個人情報を含むファイルはコミットしない。リポジトリにはサンプル設定のみを含める。
 - ログにパスワード・トークン・個人情報を出力しない。
+- GlitchTip/Sentry へ送信されるエラー報告にも、ログと同様に認証情報・個人情報を含めない。

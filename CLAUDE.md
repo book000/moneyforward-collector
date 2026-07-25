@@ -241,7 +241,10 @@ CONFIG_PATH=/data/config.json
 CHROMIUM_PATH=/usr/bin/chromium-browser
 LOG_DIR=/data/logs/
 USER_DATA_BASE=/data/userdata
+SENTRY_DSN=  # オプション。設定すると GlitchTip (Sentry 互換) へのエラー送信が有効化される
 ```
+
+- `SENTRY_DSN` を設定すると、`@book000/node-utils` の `Logger`/`ErrorReporter` が自動的に GlitchTip (Sentry 互換) へエラーを転送する。未設定の場合は何も送信されない（opt-in）。関連するオプション環境変数として `SENTRY_ENVIRONMENT`（環境名）、`SENTRY_LOG_LEVEL`（転送する最小ログレベル）、`SENTRY_RELEASE`（リリースタグ）がある。
 
 ### 出力ディレクトリ（自動作成）
 
