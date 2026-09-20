@@ -183,11 +183,9 @@ function getYear(filedate: string, monthDay: string) {
   const year = filedate.slice(0, 4)
 
   // filedateが12月で、monthDayが1月の場合、yearは1年進む
-  if (filedate.slice(4, 6) === '12' && monthDay.startsWith('01')) {
-    return String(Number(year) + 1)
-  }
-
-  return year
+  return filedate.slice(4, 6) === '12' && monthDay.startsWith('01')
+    ? String(Number(year) + 1)
+    : year
 }
 
 function saveAllCsv() {
