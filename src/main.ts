@@ -123,10 +123,7 @@ async function save(config: Config, page: Page) {
     path: `/data/screenshot/${filename}.png`,
     fullPage: true,
   })
-  let html = await page.evaluate(() => {
-    // querySelectorAll('html')[0] の代わりに documentElement を使用する (unicorn/no-incorrect-query-selector)
-    return document.documentElement.innerHTML
-  })
+  let html = await page.$eval('html', (element) => element.innerHTML)
   const url = config.moneyforward.base_url
   html = html.replaceAll('href="/', () => `href="${url}`)
   html = html.replaceAll('src="/', () => `src="${url}`)
@@ -150,11 +147,9 @@ async function cf(config: Config, page: Page) {
     await save(config, page)
 
     await new Promise((resolve) => setTimeout(resolve, 5000))
-    await page.evaluate(() => {
-      const previousElement = document.querySelector(`button.fc-button-prev`)
-      if (previousElement != null) {
-        previousElement.scrollIntoView()
-      }
+    const previousElement = await page.$('button.fc-button-prev')
+    await previousElement?.evaluate((element) => {
+      element.scrollIntoView()
     })
     await new Promise((resolve) => setTimeout(resolve, 2000))
     await page
