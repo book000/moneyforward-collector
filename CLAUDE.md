@@ -72,6 +72,9 @@ pnpm dev
 # 本番実行
 pnpm start
 
+# 単体テスト（CSV/TSV のシリアライズ・パース）
+pnpm test
+
 # Lint チェック（全体: prettier, eslint, tsc）
 pnpm lint
 
@@ -90,7 +93,7 @@ pnpm fix:eslint     # ESLint 自動修正
 
 ### アーキテクチャサマリー
 
-- **シングルファイル設計**: すべてのロジックは `src/main.ts` に集約
+- **シングルファイル設計**: アプリケーションロジックは `src/main.ts` に集約。ただし副作用のない CSV/TSV のシリアライズ・パース処理のみ、テスト可能にするため `src/csv.ts` に分離している
 - **モノリシック構造**: ネストされたモジュール構造なし
 - **Docker コンテナ化**: zenika/alpine-chrome ベースで実行
 - **定期実行**: entrypoint.sh により 1 時間ごとに自動再実行
@@ -100,7 +103,9 @@ pnpm fix:eslint     # ESLint 自動修正
 ```
 moneyforward-collector/
 ├── src/                          # ソースコードディレクトリ
-│   └── main.ts                   # 単一エントリーポイント（全ロジック）
+│   ├── main.ts                   # 単一エントリーポイント（アプリケーションロジック）
+│   ├── csv.ts                    # CSV/TSV のシリアライズ・パース（csv-stringify / csv-parse）
+│   └── csv.test.ts               # csv.ts の回帰テスト（node:test）
 ├── .github/
 │   └── workflows/                # GitHub Actions CI/CD
 │       ├── nodejs-ci-pnpm.yml   # Node.js lint/test ワークフロー
@@ -115,7 +120,8 @@ moneyforward-collector/
 
 | ファイル | 目的 |
 |---------|------|
-| `src/main.ts` | すべてのアプリケーションロジックを含む単一ソースファイル |
+| `src/main.ts` | アプリケーションロジックを含む単一ソースファイル |
+| `src/csv.ts` | CSV/TSV のシリアライズ・パース処理 |
 | `package.json` | プロジェクトメタデータ、スクリプト、依存関係 |
 | `tsconfig.json` | TypeScript コンパイラ設定 |
 | `eslint.config.mjs` | ESLint 設定（@book000/eslint-config 継承） |
@@ -136,7 +142,7 @@ moneyforward-collector/
 
 ### 非推奨パターン
 
-- **複数ファイルへの分割**: 現在はシングルファイル設計を採用しているため、分割は行わない
+- **複数ファイルへの分割**: 現在はシングルファイル設計を採用しているため、分割は行わない（`src/csv.ts` はテストのための例外）
 - **skipLibCheck の使用**: 型エラーを回避する目的での使用は禁止
 - **console.log の使用**: Logger を使用すること
 
@@ -144,13 +150,13 @@ moneyforward-collector/
 
 ### テスト方針
 
-- このプロジェクトにはテストフレームワークは含まれていない
-- データ収集ユーティリティのため、ユニットテストや統合テストは未実装
+- CSV/TSV のシリアライズ・パース処理（`src/csv.ts`）のみ、Node.js 標準の `node:test` で回帰テストを行う（`pnpm test`、実行は `tsx --test`）
+- Puppeteer によるブラウザ操作など、それ以外のロジックにはテストを用意していない
 - 動作確認は実際の MoneyForward 環境での手動テストで行う
 
 ### テスト追加条件
 
-新しいロジックを追加する場合でも、現時点ではテストフレームワークの導入は不要。手動テストで確認すること。
+CSV/TSV の入出力形式を変更する場合は `src/csv.test.ts` にテストを追加すること。それ以外のロジックでは、現時点ではテストフレームワークの導入は不要。手動テストで確認すること。
 
 ## ドキュメント更新ルール
 
@@ -189,6 +195,7 @@ moneyforward-collector/
 2. コミット内容にセンシティブな情報が含まれていないこと
 3. Lint / Format エラーが発生しないこと
    - `pnpm lint` を実行してエラーがないことを確認
+   - `pnpm test` を実行してエラーがないことを確認
 4. 動作確認を行い、期待通り動作すること
 
 ### プルリクエストを作成する前

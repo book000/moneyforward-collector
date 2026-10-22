@@ -17,6 +17,7 @@
   "scripts": {
     "start": "tsx ./src/main.ts",
     "dev": "tsx watch ./src/main.ts",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "lint": "run-z lint:prettier,lint:eslint,lint:tsc",
     "fix": "run-z fix:prettier,fix:eslint",
     "lint:prettier": "prettier --check src",
@@ -30,6 +31,8 @@
     "@book000/eslint-config": "1.16.101",
     "@book000/node-utils": "1.25.167",
     "@types/node": "24.19.2",
+    "csv-parse": "7.0.3",
+    "csv-stringify": "6.9.0",
     "eslint": "10.13.0",
     "eslint-config-standard": "17.1.0",
     "eslint-plugin-import": "2.32.0",
