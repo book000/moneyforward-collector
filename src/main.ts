@@ -1,6 +1,8 @@
 import fs from 'node:fs'
 import puppeteer, { LaunchOptions, Page } from 'puppeteer-core'
 import { ErrorReporter, Logger } from '@book000/node-utils'
+import { parse } from 'csv-parse/sync'
+import { stringify } from 'csv-stringify/sync'
 
 interface Config {
   moneyforward: {
@@ -52,18 +54,22 @@ async function toCSV(page: Page) {
   if (!table) {
     return null
   }
-  let dataCsv = ''
+  const records: string[][] = []
   const rows = await table.$$('tr')
   for (const row of rows) {
     const cells = await row.$$('th, td')
-    for (let index = 0; index < cells.length; index++) {
+    const record: string[] = []
+    for (const cell of cells) {
       const textContent =
-        (await cells[index].evaluate((element) => element.textContent)) || ''
-      dataCsv += `"${textContent.replaceAll('\n', String.raw`\n`)}"`
-      dataCsv += index === cells.length - 1 ? '\n' : ','
+        (await cell.evaluate((element) => element.textContent)) || ''
+      record.push(textContent.replaceAll('\n', String.raw`\n`))
+    }
+    if (record.length > 0) {
+      records.push(record)
     }
   }
-  return dataCsv
+  // 二重引用符を含むセルでも RFC 4180 に従ってエスケープされるようにする
+  return stringify(records, { quoted: true, quoted_empty: true })
 }
 
 async function toTSV(page: Page) {
@@ -201,14 +207,17 @@ function saveAllCsv() {
   )
   const headers = Object.values(columns).join(',')
 
-  const allCsvs = []
+  const allRecords: string[][] = []
   for (const file of csvFiles) {
-    const tsv = fs.readFileSync(`/data/csv/${file}`, 'utf8')
-    const rows = tsv.split('\n').slice(1)
+    const csv = fs.readFileSync(`/data/csv/${file}`, 'utf8')
+    // 引用符内のカンマ・改行を正しく扱うため、CSV パーサでレコードに分割する
+    const records: string[][] = parse(csv, {
+      skip_empty_lines: true,
+      relax_column_count: true,
+    })
     const filedate = file.split(' - ', 1)[0] // 20210101
-    const allCsv = rows
-      .filter((row) => row.length > 0)
-      .map((row) => row.split(',').map((col) => col.replace(/^"(.+)"$/, '$1')))
+    const fileRecords = records
+      .slice(1)
       .map((row) => row.filter((_, index) => Object.hasOwn(columns, index)))
       .map((row) => {
         const date = row[0].split('(', 1)[0]
@@ -217,18 +226,17 @@ function saveAllCsv() {
         const [month, day] = date.split('/', 2)
         return [`${year}/${month}/${day}`, ...row.slice(1)]
       })
-      .map((row) => row.map((col) => `"${col}"`))
-      .map((row) => row.join(','))
       .toReversed()
-      .join('\n')
 
-    allCsvs.push(allCsv)
+    allRecords.push(...fileRecords)
   }
 
-  fs.writeFileSync(
-    `/data/all.csv`,
-    `${headers}\n${allCsvs.filter((csv) => csv.length > 0).join('\n')}`
-  )
+  // 末尾の改行を付けないことで、従来の出力形式を維持する
+  const body = stringify(allRecords, {
+    quoted: true,
+    quoted_empty: true,
+  }).replace(/\n$/, '')
+  fs.writeFileSync(`/data/all.csv`, `${headers}\n${body}`)
 }
 
 function saveAllTsv() {

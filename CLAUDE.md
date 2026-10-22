@@ -131,6 +131,7 @@ moneyforward-collector/
 - **設定管理**: JSON 形式の設定ファイル（`CONFIG_PATH` 環境変数で指定）
 - **ログ出力**: `@book000/node-utils` の Logger を使用
 - **ブラウザ自動化**: Puppeteer Core を使用
+- **CSV の読み書き**: 引用符内のカンマ・改行・二重引用符を扱うため、`split` などによる自前処理ではなく `csv-parse` / `csv-stringify` を使用
 - **エラーハンドリング**: try-catch でエラーを捕捉し、適切にログ出力
 - **ファイル出力**: 自動的にディレクトリを作成してから出力
 
