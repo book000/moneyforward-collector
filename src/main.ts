@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import puppeteer, { LaunchOptions, Page } from 'puppeteer-core'
 import { ErrorReporter, Logger } from '@book000/node-utils'
+import { Delimiter, parseRows, serializeRows } from './csv'
 
 interface Config {
   moneyforward: {
@@ -45,47 +46,45 @@ async function login(config: Config, page: Page) {
   await new Promise((resolve) => setTimeout(resolve, 3000))
 }
 
-async function toCSV(page: Page) {
-  const logger = Logger.configure('toCSV')
-  logger.info('toCSV()')
+/**
+ * 取引明細テーブルの各セルのテキストを行ごとに取得する。
+ * セル内の改行は、1 レコード 1 行を保つため `\n`（バックスラッシュと n）へ置換する。
+ *
+ * @param page ページ
+ * @returns 行データ。テーブルが存在しない場合は null
+ */
+async function getTableRows(page: Page) {
   const table = await page.$('table#cf-detail-table')
   if (!table) {
     return null
   }
-  let dataCsv = ''
+  const result: string[][] = []
   const rows = await table.$$('tr')
   for (const row of rows) {
     const cells = await row.$$('th, td')
-    for (let index = 0; index < cells.length; index++) {
+    const values: string[] = []
+    for (const cell of cells) {
       const textContent =
-        (await cells[index].evaluate((element) => element.textContent)) || ''
-      dataCsv += `"${textContent.replaceAll('\n', String.raw`\n`)}"`
-      dataCsv += index === cells.length - 1 ? '\n' : ','
+        (await cell.evaluate((element) => element.textContent)) || ''
+      values.push(textContent.replaceAll('\n', String.raw`\n`))
     }
+    result.push(values)
   }
-  return dataCsv
+  return result
+}
+
+async function toCSV(page: Page) {
+  const logger = Logger.configure('toCSV')
+  logger.info('toCSV()')
+  const rows = await getTableRows(page)
+  return rows ? serializeRows(rows, ',') : null
 }
 
 async function toTSV(page: Page) {
   const logger = Logger.configure('toTSV')
   logger.info('toTSV()')
-  const table = await page.$('table#cf-detail-table')
-  if (!table) {
-    return null
-  }
-  const rows = await table.$$('tr')
-  let dataTsv = ''
-  for (const row of rows) {
-    const cells = await row.$$('th, td')
-    for (let index = 0; index < cells.length; index++) {
-      const cellText =
-        (await cells[index].evaluate((element) => element.textContent)) || ''
-      dataTsv += `"${cellText.replaceAll('\n', String.raw`\n`)}"`
-      dataTsv += index === cells.length - 1 ? '\n' : '\t'
-    }
-  }
-
-  return dataTsv
+  const rows = await getTableRows(page)
+  return rows ? serializeRows(rows, '\t') : null
 }
 
 async function save(config: Config, page: Page) {
@@ -183,9 +182,21 @@ function getYear(filedate: string, monthDay: string) {
     : year
 }
 
-function saveAllCsv() {
-  const logger = Logger.configure('saveAllCsv')
-  logger.info('saveAllCsv()')
+/**
+ * 収集済みの CSV/TSV ファイルを集約して、1 つのファイルに保存する。
+ *
+ * @param directory 収集済みファイルのディレクトリ
+ * @param extension 対象ファイルの拡張子（ドット付き）
+ * @param delimiter 区切り文字
+ * @param outputPath 集約ファイルの出力先
+ */
+function saveAll(
+  directory: string,
+  extension: string,
+  delimiter: Delimiter,
+  outputPath: string
+) {
+  const logger = Logger.configure('saveAll')
 
   const columns = {
     1: '日付',
@@ -195,20 +206,23 @@ function saveAllCsv() {
     7: 'メモ',
   }
 
-  const files = fs.readdirSync('/data/csv/')
-  const csvFiles = files.filter(
-    (file) => file.endsWith('.csv') && /^\d{8}/.test(file)
+  const files = fs.readdirSync(directory)
+  const targetFiles = files.filter(
+    (file) => file.endsWith(extension) && /^\d{8}/.test(file)
   )
-  const headers = Object.values(columns).join(',')
+  const headers = Object.values(columns).join(delimiter)
 
-  const allCsvs = []
-  for (const file of csvFiles) {
-    const tsv = fs.readFileSync(`/data/csv/${file}`, 'utf8')
-    const rows = tsv.split('\n').slice(1)
+  const allRows: string[][] = []
+  for (const file of targetFiles) {
+    const content = fs.readFileSync(`${directory}/${file}`, 'utf8')
+    // 先頭行はヘッダ行のため除外する
+    const rows = parseRows(content, delimiter, (error) => {
+      logger.warn(
+        `Failed to parse ${file} strictly. Fall back to the legacy parser: ${error.message}`
+      )
+    }).slice(1)
     const filedate = file.split(' - ', 1)[0] // 20210101
-    const allCsv = rows
-      .filter((row) => row.length > 0)
-      .map((row) => row.split(',').map((col) => col.replace(/^"(.+)"$/, '$1')))
+    const fileRows = rows
       .map((row) => row.filter((_, index) => Object.hasOwn(columns, index)))
       .map((row) => {
         const date = row[0].split('(', 1)[0]
@@ -217,65 +231,27 @@ function saveAllCsv() {
         const [month, day] = date.split('/', 2)
         return [`${year}/${month}/${day}`, ...row.slice(1)]
       })
-      .map((row) => row.map((col) => `"${col}"`))
-      .map((row) => row.join(','))
       .toReversed()
-      .join('\n')
 
-    allCsvs.push(allCsv)
+    allRows.push(...fileRows)
   }
 
   fs.writeFileSync(
-    `/data/all.csv`,
-    `${headers}\n${allCsvs.filter((csv) => csv.length > 0).join('\n')}`
+    outputPath,
+    `${headers}\n${serializeRows(allRows, delimiter)}`
   )
+}
+
+function saveAllCsv() {
+  const logger = Logger.configure('saveAllCsv')
+  logger.info('saveAllCsv()')
+  saveAll('/data/csv/', '.csv', ',', '/data/all.csv')
 }
 
 function saveAllTsv() {
   const logger = Logger.configure('saveAllTsv')
   logger.info('saveAllTsv()')
-
-  const columns = {
-    1: '日付',
-    2: '内容',
-    3: '金額',
-    4: '保有金融機関',
-    7: 'メモ',
-  }
-
-  const files = fs.readdirSync('/data/tsv/')
-  const tsvFiles = files.filter(
-    (file) => file.endsWith('.tsv') && /^\d{8}/.test(file)
-  )
-  const headers = Object.values(columns).join('\t')
-
-  const allTsvs = []
-  for (const file of tsvFiles) {
-    const tsv = fs.readFileSync(`/data/tsv/${file}`, 'utf8')
-    const rows = tsv.split('\n').slice(1)
-    const filedate = file.split(' - ', 1)[0] // 20210101
-    const allTsv = rows
-      .filter((row) => row.length > 0)
-      .map((row) => row.split('\t'))
-      .map((row) => row.filter((_, index) => Object.hasOwn(columns, index)))
-      .map((row) => {
-        const date = row[0].split('(', 1)[0]
-        const year = getYear(filedate, date)
-        // date.split('/', 2) を 1 度だけ呼び出してデストラクチャリングで取得する
-        const [month, day] = date.split('/', 2)
-        return [`${year}/${month}/${day}`, ...row.slice(1)]
-      })
-      .map((row) => row.join('\t'))
-      .toReversed()
-      .join('\n')
-
-    allTsvs.push(allTsv)
-  }
-
-  fs.writeFileSync(
-    `/data/all.tsv`,
-    `${headers}\n${allTsvs.filter((tsv) => tsv.length > 0).join('\n')}`
-  )
+  saveAll('/data/tsv/', '.tsv', '\t', '/data/all.tsv')
 }
 
 function mkdirs() {
