@@ -3,6 +3,9 @@ import puppeteer, { LaunchOptions, Page } from 'puppeteer-core'
 import { ErrorReporter, Logger } from '@book000/node-utils'
 import { Delimiter, parseRows, serializeRows } from './csv'
 
+/**
+ * `CONFIG_PATH` で指定する JSON 設定ファイルの形式。
+ */
 interface Config {
   moneyforward: {
     base_url?: string
@@ -17,6 +20,13 @@ interface Config {
   puppeteer?: Record<string, unknown>
 }
 
+/**
+ * MoneyForward にログインする。
+ * 固定待機を挟みながらフォームへ入力して送信する。
+ *
+ * @param config 設定
+ * @param page ページ
+ */
 async function login(config: Config, page: Page) {
   const logger = Logger.configure('login')
   logger.info('login()')
@@ -73,6 +83,12 @@ async function getTableRows(page: Page) {
   return result
 }
 
+/**
+ * 取引明細テーブルを CSV 文字列へ変換する。
+ *
+ * @param page ページ
+ * @returns CSV 文字列。テーブルが存在しない場合は null
+ */
 async function toCSV(page: Page) {
   const logger = Logger.configure('toCSV')
   logger.info('toCSV()')
@@ -80,6 +96,12 @@ async function toCSV(page: Page) {
   return rows ? serializeRows(rows, ',') : null
 }
 
+/**
+ * 取引明細テーブルを TSV 文字列へ変換する。
+ *
+ * @param page ページ
+ * @returns TSV 文字列。テーブルが存在しない場合は null
+ */
 async function toTSV(page: Page) {
   const logger = Logger.configure('toTSV')
   logger.info('toTSV()')
@@ -87,12 +109,19 @@ async function toTSV(page: Page) {
   return rows ? serializeRows(rows, '\t') : null
 }
 
+/**
+ * 表示中の期間の取引明細を CSV、TSV、スクリーンショット、HTML として `/data` 配下へ保存する。
+ * ファイル名は `YYYYMMDD - YYYYMMDD`（表示期間の開始日と終了日）。
+ *
+ * @param config 設定
+ * @param page ページ
+ */
 async function save(config: Config, page: Page) {
   const logger = Logger.configure('save')
   logger.info('save()')
   const dateText = await page.$eval(
     '.fc-header-title h2',
-    (element) => element.textContent // ?
+    (element) => element.textContent
   )
   if (!dateText) {
     return
@@ -129,6 +158,12 @@ async function save(config: Config, page: Page) {
   fs.writeFileSync(`/data/html/${filename}.html`, html)
 }
 
+/**
+ * 家計簿の画面を開き、表示期間が変わらなくなるまで前の期間へ遡りながら各期間を保存する。
+ *
+ * @param config 設定
+ * @param page ページ
+ */
 async function cf(config: Config, page: Page) {
   const logger = Logger.configure('cf')
   logger.info('cf()')
@@ -159,7 +194,7 @@ async function cf(config: Config, page: Page) {
     await new Promise((resolve) => setTimeout(resolve, 5000))
     const after = await page.$eval(
       '.fc-header-title h2',
-      (element) => element.textContent // ?
+      (element) => element.textContent
     )
     logger.info(`after: ${after}`)
     if (before === after) {
@@ -170,13 +205,18 @@ async function cf(config: Config, page: Page) {
   }
 }
 
+/**
+ * 明細の月日に年を補う。
+ * ファイル名の日付が 12 月で明細が 1 月の場合のみ、翌年とみなす。
+ * 例: filedate が 20201210 で monthDay が 01/01(金) なら 2021、filedate が 20210210 なら monthDay に関わらず 2021。
+ *
+ * @param filedate ファイル名の先頭の日付（YYYYMMDD）
+ * @param monthDay 明細の月日（MM/DD(曜日)）
+ * @returns 年（4 桁の文字列）
+ */
 function getYear(filedate: string, monthDay: string) {
-  // filedate: 20201210 monthDay: 01/01(金) -> 2021
-  // filedate: 20210210 monthDay: 02/13(金) -> 2021
-
   const year = filedate.slice(0, 4)
 
-  // filedateが12月で、monthDayが1月の場合、yearは1年進む
   return filedate.slice(4, 6) === '12' && monthDay.startsWith('01')
     ? String(Number(year) + 1)
     : year
@@ -227,7 +267,6 @@ function saveAll(
       .map((row) => {
         const date = row[0].split('(', 1)[0]
         const year = getYear(filedate, date)
-        // date.split('/', 2) を 1 度だけ呼び出してデストラクチャリングで取得する
         const [month, day] = date.split('/', 2)
         return [`${year}/${month}/${day}`, ...row.slice(1)]
       })
@@ -242,18 +281,21 @@ function saveAll(
   )
 }
 
+/** 収集済みの CSV を集約して `/data/all.csv` へ保存する。 */
 function saveAllCsv() {
   const logger = Logger.configure('saveAllCsv')
   logger.info('saveAllCsv()')
   saveAll('/data/csv/', '.csv', ',', '/data/all.csv')
 }
 
+/** 収集済みの TSV を集約して `/data/all.tsv` へ保存する。 */
 function saveAllTsv() {
   const logger = Logger.configure('saveAllTsv')
   logger.info('saveAllTsv()')
   saveAll('/data/tsv/', '.tsv', '\t', '/data/all.tsv')
 }
 
+/** 出力先ディレクトリが存在しなければ作成する。 */
 function mkdirs() {
   const directories = [
     '/data/csv',
@@ -270,6 +312,10 @@ function mkdirs() {
   }
 }
 
+/**
+ * 設定を読み込み、ログインから収集、集約ファイルの保存までを実行する。
+ * 設定ファイルのパスは環境変数 `CONFIG_PATH`（未設定時は `config.json`）で指定する。
+ */
 async function main() {
   const logger = Logger.configure('main')
   logger.info('main()')

@@ -1,46 +1,23 @@
 # GitHub Copilot Instructions
 
-GitHub Copilot によるコードレビュー向けの指示です。このリポジトリでレビューする際に重点的に確認すべき点と、フラグすべきでない既知パターンをまとめています。
+Follow `AGENTS.md` at the repository root for the project overview, commands, structure and conventions. This file is a short checklist for code review.
 
-## プロジェクト概要
+## Language
 
-MoneyForward の入出金明細を Puppeteer で自動収集し、CSV/TSV/HTML/PNG 形式でエクスポートする TypeScript 製ツール。Docker コンテナ上で `entrypoint.sh` により 1 時間ごとに定期実行される。
+- Write review comments in Japanese, with a half-width space between Japanese and alphanumeric characters.
+- Deliverables (code comments, docs, commit descriptions, PR text) are Japanese; runtime messages (logs, errors) and `package.json` text are English.
 
-- アプリケーションロジックは `src/main.ts` 単一ファイルに集約（シングルファイル設計）。CSV/TSV のシリアライズ・パースのみ `src/csv.ts` に分離
-- 具体的な技術スタックとバージョンは `package.json` / `.node-version` を参照（レビュー時に個別バージョンを指摘に使わない）
+## Do not flag
 
-## レビュー時の言語
+- Prettier, ESLint and `tsc` issues: `pnpm lint` runs in CI.
+- Logic concentrated in `src/main.ts`: single-file design is intentional (only CSV/TSV handling lives in `src/csv.ts`).
+- Missing tests outside CSV/TSV handling: the rest is verified manually against the real service.
+- `pnpm start || true` in `entrypoint.sh`: keeps the periodic run going after a failure.
+- Both `logger.error()` and `ErrorReporter.captureException()` in the same catch block: intentional (log output vs. structured report to GlitchTip when `SENTRY_DSN` is set).
 
-- レビューコメントは日本語で記載する。
-- 日本語と英数字の間には半角スペースを入れる。
+## Check carefully
 
-## 強制されている規約（lint / format で自動チェック済み）
-
-以下は `pnpm lint`（`.github/workflows/nodejs-ci-pnpm.yml` の CI でも実行）で機械的に検証されるため、**Copilot が重ねて指摘する必要はない**:
-
-- Prettier フォーマット（`.prettierrc.yml`: 行幅 80、2 スペース、セミコロンなし、シングルクォート、trailing comma es5）
-- ESLint（`eslint.config.mjs`、`@book000/eslint-config` 継承）
-- TypeScript strict 型チェック（`tsc`）
-
-## 重点的に確認すべき点
-
-- **機密情報の混入**: MoneyForward のメールアドレス・パスワード、プロキシ認証情報がコード・ログ・コミットに含まれていないか。これらは `CONFIG_PATH` 環境変数で指定する設定ファイルで管理する。
-- **ログ出力**: 個人情報（メールアドレス、氏名など）や認証情報がログに出力されていないか。ログは `@book000/node-utils` の Logger を使用（`console.log` は非推奨）。
-- **エラーハンドリング**: Puppeteer 操作や外部サイトへの依存箇所で try-catch により適切に捕捉・ログ出力されているか。定期実行のため 1 回の失敗で全体が停止しない設計か。
-- **型安全性**: `skipLibCheck` や `any` による型エラーの握りつぶしがないか（strict モード維持）。
-- **JSDoc**: 関数・インターフェースに日本語の JSDoc が付与・更新されているか。
-- **エラー報告への機密情報混入**: `logger.error()` および `ErrorReporter.captureException()` は、`SENTRY_DSN` 設定時に GlitchTip (Sentry) へエラーを転送する意図的な実装である。`ErrorReporter.captureException` に渡す `context`/`extra` や、`logger.error()` でログ出力するエラーオブジェクトに、パスワード・個人情報などの機密情報が含まれていないか確認する。
-
-## フラグすべきでない既知パターン
-
-- **シングルファイル設計**: `src/main.ts` にロジックが集中していること自体は設計方針であり、「ファイル分割すべき」という指摘は不要。なお CSV/TSV のシリアライズ・パース処理のみ、テストのため `src/csv.ts` に分離している。
-- **テストの範囲**: テストは CSV/TSV 処理（`src/csv.test.ts`、`node:test`）のみで、それ以外の動作確認は実 MoneyForward 環境での手動テストで行う。「テストを追加すべき」という一般論の指摘は不要。
-- **`|| true` による継続**: `entrypoint.sh` の `pnpm start || true` は定期実行で失敗しても継続させる意図的な設計。
-- **Renovate PR**: Renovate が作成した依存更新 PR への追加コミットは行わない運用。
-- **`logger.error()` と `ErrorReporter.captureException()` の併用**: 同一の catch ブロック内で両方を呼び出すのは意図的な設計であり、重複した指摘は不要。前者は `SENTRY_DSN` 設定時に winston トランスポート経由で自動転送され、後者はタグ付きの構造化コンテキストを付与した明示的な報告を行うという別の役割を持つ。
-
-## セキュリティ
-
-- 認証情報・個人情報を含むファイルはコミットしない。リポジトリにはサンプル設定のみを含める。
-- ログにパスワード・トークン・個人情報を出力しない。
-- GlitchTip/Sentry へ送信されるエラー報告にも、ログと同様に認証情報・個人情報を含めない。
+- Credentials, personal data or financial data in code, tests, logs, error reports or docs.
+- Errors from Puppeteer operations and external pages are caught and logged, so one failure does not stop the periodic run.
+- No `any` or `skipLibCheck` used to hide type errors; JSDoc is present and accurate for functions and interfaces.
+- Docs (`README.md`, `AGENTS.md`) match the code when commands, config or output formats change.
