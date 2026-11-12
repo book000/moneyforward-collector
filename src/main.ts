@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import puppeteer, { LaunchOptions, Page } from 'puppeteer-core'
 import { ErrorReporter, Logger } from '@book000/node-utils'
+import { dropOverlappedRows, PeriodRows } from './aggregate'
 import { Delimiter, parseRows, serializeRows } from './csv'
 
 /**
@@ -238,22 +239,32 @@ function saveAll(
 ) {
   const logger = Logger.configure('saveAll')
 
-  const columns = {
-    1: '日付',
-    2: '内容',
-    3: '金額',
-    4: '保有金融機関',
-    7: 'メモ',
-  }
+  // 既存の列位置を保つため、大項目と中項目は末尾に置く
+  const columns: [number, string][] = [
+    [1, '日付'],
+    [2, '内容'],
+    [3, '金額'],
+    [4, '保有金融機関'],
+    [7, 'メモ'],
+    [5, '大項目'],
+    [6, '中項目'],
+  ]
 
   const files = fs.readdirSync(directory)
-  const targetFiles = files.filter(
-    (file) => file.endsWith(extension) && /^\d{8}/.test(file)
-  )
-  const headers = Object.values(columns).join(delimiter)
+  const headers = columns.map(([, name]) => name).join(delimiter)
 
-  const allRows: string[][] = []
-  for (const file of targetFiles) {
+  const periods: PeriodRows[] = []
+  for (const file of files) {
+    const period = /^(\d{8}) - (\d{8})/.exec(file)
+    if (!file.endsWith(extension)) {
+      continue
+    }
+    if (!period) {
+      logger.warn(`Skip ${file}: file name is not "YYYYMMDD - YYYYMMDD"`)
+      continue
+    }
+    const [, start, end] = period
+
     const content = fs.readFileSync(`${directory}/${file}`, 'utf8')
     // 先頭行はヘッダ行のため除外する
     const rows = parseRows(content, delimiter, (error) => {
@@ -261,19 +272,22 @@ function saveAll(
         `Failed to parse ${file} strictly. Fall back to the legacy parser: ${error.message}`
       )
     }).slice(1)
-    const filedate = file.split(' - ', 1)[0] // 20210101
     const fileRows = rows
-      .map((row) => row.filter((_, index) => Object.hasOwn(columns, index)))
+      .map((row) => columns.map(([index]) => row[index] ?? ''))
       .map((row) => {
         const date = row[0].split('(', 1)[0]
-        const year = getYear(filedate, date)
+        const year = getYear(start, date)
         const [month, day] = date.split('/', 2)
         return [`${year}/${month}/${day}`, ...row.slice(1)]
       })
       .toReversed()
 
-    allRows.push(...fileRows)
+    periods.push({ start, end, rows: fileRows })
   }
+
+  const allRows = dropOverlappedRows(periods)
+  const loadedCount = periods.reduce((sum, p) => sum + p.rows.length, 0)
+  logger.info(`Loaded rows: ${loadedCount}, kept rows: ${allRows.length}`)
 
   fs.writeFileSync(
     outputPath,
