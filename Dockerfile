@@ -2,7 +2,7 @@
 # zenika/alpine-chrome のベースに含まれる Node.js は古く、pnpm が必要とする node:sqlite (Node.js 22.5+) に対応しないため、node イメージの Node.js で置き換える
 # Node.js 25 以降は corepack が同梱されないため、corepack は npm でインストールする
 # バージョンはプロジェクトの .node-version に合わせてパッチバージョンまで固定する
-FROM node:26.13.0-alpine AS node24
+FROM node:26.13.1-alpine AS node24
 
 FROM zenika/alpine-chrome:with-puppeteer-xvfb AS runner
 
