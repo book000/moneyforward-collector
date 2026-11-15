@@ -154,7 +154,7 @@ async function save(config: Config, page: Page) {
   })
   let html = await page.$eval('html', (element) => element.innerHTML)
   const url = config.moneyforward.base_url
-  html = html.replaceAll('href="/', () => `href="${url}`)
+  html = html.replaceAll('href="/', () => `href="${url}/`)
   html = html.replaceAll('src="/', () => `src="${url}`)
   fs.writeFileSync(`/data/html/${filename}.html`, html)
 }
