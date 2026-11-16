@@ -267,9 +267,9 @@ function saveAll(
 
     const content = fs.readFileSync(`${directory}/${file}`, 'utf8')
     // 先頭行はヘッダ行のため除外する
-    const rows = parseRows(content, delimiter, (error) => {
+    const rows = parseRows(content, delimiter, (reason) => {
       logger.warn(
-        `Failed to parse ${file} strictly. Fall back to the legacy parser: ${error.message}`
+        `Failed to parse ${file} strictly. Fall back to the legacy parser: ${reason}`
       )
     }).slice(1)
     const fileRows = rows

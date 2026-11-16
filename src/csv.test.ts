@@ -73,6 +73,15 @@ describe('parseRows', () => {
     ])
   })
 
+  it('フォールバック時の理由にセル値を含めず、エラーコードと行番号だけを渡す', () => {
+    const content = '"日付","内容"\n"2021/01/01","SYNTHETIC_PRIVATE"oops"\n'
+    const reasons: string[] = []
+    parseRows(content, ',', (reason) => {
+      reasons.push(reason)
+    })
+    assert.deepEqual(reasons, ['code=CSV_INVALID_CLOSING_QUOTE line=2'])
+  })
+
   it('正しい形式のファイルではフォールバックしない', () => {
     const text = serializeRows([['A"B', 'C']], ',')
     let fallbackCalled = false

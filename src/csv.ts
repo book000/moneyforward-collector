@@ -74,6 +74,17 @@ export function parseRowsLegacy(
 }
 
 /**
+ * パース例外を、セル値を含まない説明（エラーコードと行番号）へ変換する。
+ *
+ * @param error パース時に投げられた例外
+ * @returns `code=<エラーコード> line=<行番号>` 形式の文字列。取得できない項目は `unknown`
+ */
+function describeParseError(error: unknown): string {
+  const { code, lines } = error as { code?: unknown; lines?: unknown }
+  return `code=${typeof code === 'string' ? code : 'unknown'} line=${typeof lines === 'number' ? lines : 'unknown'}`
+}
+
+/**
  * CSV/TSV 文字列をパースして行データへ変換する。
  *
  * 通常は厳密にパースする。過去のバージョンが出力したダブルクォート未エスケープのファイルなど、
@@ -81,18 +92,19 @@ export function parseRowsLegacy(
  *
  * @param content CSV/TSV 文字列
  * @param delimiter 区切り文字
- * @param onFallback フォールバック時に呼び出されるコールバック（厳密パースのエラーを受け取る）
+ * @param onFallback フォールバック時に呼び出されるコールバック。厳密パースの失敗理由（エラーコードと行番号のみ）を受け取る。
+ * csv-parse の例外本文にはセル値が含まれるため、コールバックへは渡さない。
  * @returns 行データ
  */
 export function parseRows(
   content: string,
   delimiter: Delimiter,
-  onFallback?: (error: Error) => void
+  onFallback?: (reason: string) => void
 ): string[][] {
   try {
     return parseRowsStrict(content, delimiter)
   } catch (error) {
-    onFallback?.(error as Error)
+    onFallback?.(describeParseError(error))
     return parseRowsLegacy(content, delimiter)
   }
 }
