@@ -1,8 +1,9 @@
 import fs from 'node:fs'
-import puppeteer, { LaunchOptions, Page, TimeoutError } from 'puppeteer-core'
+import puppeteer, { LaunchOptions, Page } from 'puppeteer-core'
 import { ErrorReporter, Logger } from '@book000/node-utils'
 import { dropOverlappedRows, PeriodRows } from './aggregate'
 import { Delimiter, parseRows, serializeRows } from './csv'
+import { isPeriodChanged, judgeAfterTimeout } from './period'
 
 /**
  * `CONFIG_PATH` で指定する JSON 設定ファイルの形式。
@@ -179,12 +180,41 @@ async function isPreviousButtonDisabled(page: Page) {
 }
 
 /**
- * 家計簿の画面を開き、前の期間ボタンが無効になるまで前の期間へ遡りながら各期間を保存する。
- * 前の期間ボタンが有効なのに期間の見出しが切り替わらない場合は、収集失敗として例外を投げる。
+ * 期間の見出しを読み取る。
+ *
+ * @param page ページ
+ * @returns 見出しのテキスト。取得できなければ null
+ */
+async function readHeading(page: Page) {
+  return page.$eval('.fc-header-title h2', (element) => element.textContent)
+}
+
+/**
+ * 期間の見出しが `before` から次の期間へ切り替わるのを、タイムアウトまで待つ。
+ *
+ * @param page ページ
+ * @param before 前の期間へ移動する前の見出し
+ * @returns 切り替わったら true、{@link PERIOD_CHANGE_TIMEOUT_MS} 以内に切り替わらなければ false
+ */
+async function waitForPeriodChange(page: Page, before: string | null) {
+  const deadline = Date.now() + PERIOD_CHANGE_TIMEOUT_MS
+  while (Date.now() < deadline) {
+    if (isPeriodChanged(before, await readHeading(page))) {
+      return true
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+  return false
+}
+
+/**
+ * 家計簿の画面を開き、最古の期間に到達するまで前の期間へ遡りながら各期間を保存する。
+ * 前の期間ボタンが無効になるか、ボタンが有効なまま見出しが切り替わらなければ、最古の期間として正常終了する。
+ * 見出しが `Loading...` のままなど、最古の期間と判断できない場合は、収集失敗として例外を投げる。
  *
  * @param config 設定
  * @param page ページ
- * @throws 前の期間ボタンが有効なまま {@link PERIOD_CHANGE_TIMEOUT_MS} 以内に見出しが切り替わらなかった場合
+ * @throws {@link PERIOD_CHANGE_TIMEOUT_MS} 以内に見出しが切り替わらず、最古の期間とも判断できなかった場合
  */
 async function cf(config: Config, page: Page) {
   const logger = Logger.configure('cf')
@@ -217,28 +247,24 @@ async function cf(config: Config, page: Page) {
         visible: true,
       })
       .then((element) => element?.click())
-    try {
-      await page.waitForFunction(
-        (previous) =>
-          document.querySelector('.fc-header-title h2')?.textContent !==
-          previous,
-        { timeout: PERIOD_CHANGE_TIMEOUT_MS },
-        before
-      )
-    } catch (error) {
-      if (!(error instanceof TimeoutError)) {
-        throw error
-      }
-      logger.warn(
-        `Heading did not change within ${PERIOD_CHANGE_TIMEOUT_MS} ms: ${before}`
-      )
+    if (!(await waitForPeriodChange(page, before))) {
       if (await isPreviousButtonDisabled(page)) {
         logger.info('Previous period button is disabled. Reached the oldest.')
         break
       }
-      throw new Error(
-        `Previous period button is enabled but the heading did not change within ${PERIOD_CHANGE_TIMEOUT_MS} ms (heading: "${before}")`
-      )
+      const current = await readHeading(page)
+      const result = judgeAfterTimeout(before, current)
+      if (result === 'oldest') {
+        logger.info(
+          `Heading did not change within ${PERIOD_CHANGE_TIMEOUT_MS} ms: ${before}. Reached the oldest.`
+        )
+        break
+      }
+      if (result !== 'changed') {
+        throw new Error(
+          `Heading did not change to a new period within ${PERIOD_CHANGE_TIMEOUT_MS} ms (before: "${before}", current: "${current}", result: ${result})`
+        )
+      }
     }
     logger.info(`Heading changed from: ${before}`)
     await new Promise((resolve) => setTimeout(resolve, 5000))
