@@ -20,7 +20,7 @@ MoneyForward の入出金明細を Puppeteer で収集し、CSV、TSV、スク�
 pnpm install       # 依存関係のインストール（preinstall の only-allow で pnpm 以外は拒否される）
 pnpm start         # tsx で src/main.ts を実行
 pnpm dev           # tsx watch で src/main.ts を実行
-pnpm test          # tsx --test による node:test のテスト（`src/csv.test.ts`、`src/aggregate.test.ts`）
+pnpm test          # tsx --test による node:test のテスト（`src/csv.test.ts`、`src/aggregate.test.ts`、`src/period.test.ts`）
 pnpm lint          # prettier --check、eslint、tsc を実行
 pnpm fix           # prettier --write と eslint --fix を実行
 ```
@@ -34,10 +34,12 @@ pnpm fix           # prettier --write と eslint --fix を実行
 - `src/csv.test.ts`: `src/csv.ts` のテスト。
 - `src/aggregate.ts`: 集約ファイルの重複除去（`dropOverlappedRows`）。日付ごとに、その日を期間に含む最新の期間ファイル（ファイル名 `YYYYMMDD - YYYYMMDD` の開始日が大きいもの）の行だけを残す。`src/main.ts` はインポート時に実行されるため、テストできるように分離している。
 - `src/aggregate.test.ts`: `src/aggregate.ts` のテスト。
+- `src/period.ts`: 期間切り替え待ちの判定（`isPeriodChanged`、`judgeAfterTimeout`）。見出しが `Loading...` の間は切り替わったとみなさず、タイムアウト後も見出しが変わらなければ最古の期間と判定する。`src/main.ts` はインポート時に実行されるため、テストできるように分離している。
+- `src/period.test.ts`: `src/period.ts` のテスト。
 - `Dockerfile`、`compose.yaml`、`entrypoint.sh`: コンテナでの定期実行用。
 - `.github/workflows/`: Node CI（`nodejs-ci-pnpm.yml`）と Docker イメージのビルド（`docker.yml`）。どちらも `book000/templates` の再利用ワークフローを呼び出す。
 
-ロジックを `src/main.ts` に集約する方針なので、分割しない。ただし `src/csv.ts` や `src/aggregate.ts` のように、テストのために副作用のない処理を切り出す場合は例外とする。
+ロジックを `src/main.ts` に集約する方針なので、分割しない。ただし `src/csv.ts`、`src/aggregate.ts`、`src/period.ts` のように、テストのために副作用のない処理を切り出す場合は例外とする。
 
 ## Conventions
 
@@ -46,7 +48,7 @@ pnpm fix           # prettier --write と eslint --fix を実行
 - `tsconfig.json` で `skipLibCheck` を有効にして型エラーを回避しない。
 - 関数とインターフェースには JSDoc を書く。
 - 設定は `CONFIG_PATH` 環境変数で指定する JSON ファイルで管理する。認証情報やプロキシ情報をコード、ログ、コミットへ含めない。
-- テストは CSV / TSV の入出力（`src/csv.ts`）と集約ロジック（`src/aggregate.ts`）が対象。これらを変更するときは、対応するテストファイル（`src/csv.test.ts`、`src/aggregate.test.ts`）にテストを追加する。ブラウザ操作は実環境で手動確認する。
+- テストは CSV / TSV の入出力（`src/csv.ts`）、集約ロジック（`src/aggregate.ts`）、期間切り替えの判定（`src/period.ts`）が対象。これらを変更するときは、対応するテストファイル（`src/csv.test.ts`、`src/aggregate.test.ts`、`src/period.test.ts`）にテストを追加する。ブラウザ操作は実環境で手動確認する。
 - `entrypoint.sh` の `pnpm start || true` は、失敗しても定期実行を続けるための意図的な設計。
 - コミットは [Conventional Commits](https://www.conventionalcommits.org/)、ブランチは [Conventional Branch](https://conventional-branch.github.io)（`feat/...`、`fix/...`）に従う。
 - Renovate が作成した PR にコミットしない。
