@@ -87,7 +87,7 @@ pnpm dev     # ファイル変更を監視して再実行する
 | `/data/csv/<期間>.csv` | 期間ごとの明細（CSV） |
 | `/data/tsv/<期間>.tsv` | 期間ごとの明細（TSV） |
 | `/data/screenshot/<期間>.png` | 期間ごとの画面全体のスクリーンショット |
-| `/data/html/<期間>.html` | 期間ごとの HTML。`href="/` と `src="/` は、先頭の `/` を取り除いて `base_url` を前置する形で置換される（`base_url` に末尾の `/` がないと、`https://moneyforward.comcf` のように区切りのない URL になる既知の問題がある） |
+| `/data/html/<期間>.html` | 期間ごとの HTML。`href` と `src` の値のうち `/` で始まるものは絶対 URL に置換される。`/cf` は `base_url` を前置した `https://moneyforward.com/cf` になり、`base_url` の末尾の `/` は有無を問わない。`//cdn.example/a.js` のような `//` で始まる値は、`base_url` のスキームを引き継いだ `https://cdn.example/a.js` になる |
 | `/data/all.csv` | 全期間を集約した CSV |
 | `/data/all.tsv` | 全期間を集約した TSV |
 

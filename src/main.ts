@@ -3,6 +3,7 @@ import puppeteer, { LaunchOptions, Page } from 'puppeteer-core'
 import { ErrorReporter, Logger } from '@book000/node-utils'
 import { dropOverlappedRows, PeriodRows } from './aggregate'
 import { Delimiter, parseRows, serializeRows } from './csv'
+import { toAbsoluteUrls } from './html'
 import { isPeriodChanged, judgeAfterTimeout } from './period'
 
 /**
@@ -153,10 +154,14 @@ async function save(config: Config, page: Page) {
     path: `/data/screenshot/${filename}.png`,
     fullPage: true,
   })
-  let html = await page.$eval('html', (element) => element.innerHTML)
-  const url = config.moneyforward.base_url
-  html = html.replaceAll('href="/', () => `href="${url}/`)
-  html = html.replaceAll('src="/', () => `src="${url}`)
+  const baseUrl = config.moneyforward.base_url
+  if (baseUrl === undefined) {
+    throw new Error('moneyforward.base_url is not set')
+  }
+  const html = toAbsoluteUrls(
+    await page.$eval('html', (element) => element.innerHTML),
+    baseUrl
+  )
   fs.writeFileSync(`/data/html/${filename}.html`, html)
 }
 
