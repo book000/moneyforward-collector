@@ -32,7 +32,7 @@ concurrency:
 jobs:
   post-approval-request:
     name: Post approval request
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # フォーク PR のときのみ承認リクエストを投稿する（closed は不要）
     if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository && github.event.action != 'closed'
     continue-on-error: true
@@ -63,7 +63,7 @@ jobs:
 
   approval-gate:
     name: Approval gate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     needs: post-approval-request
     # post-approval-request の結果に関わらず常に実行する
     if: always()
