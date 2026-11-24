@@ -2,7 +2,12 @@ import fs from 'node:fs'
 import puppeteer, { LaunchOptions, Page } from 'puppeteer-core'
 import { ErrorReporter, Logger } from '@book000/node-utils'
 import { dropOverlappedRows, PeriodRows } from './aggregate'
-import { Delimiter, parseRows, serializeRows } from './csv'
+import {
+  Delimiter,
+  parseRows,
+  serializeRows,
+  serializeSpreadsheetRows,
+} from './csv'
 import { toAbsoluteUrls } from './html'
 import { isPeriodChanged, judgeAfterTimeout } from './period'
 
@@ -145,10 +150,18 @@ async function save(config: Config, page: Page) {
   const csv = await toCSV(page)
   if (csv) {
     fs.writeFileSync(`/data/csv/${filename}.csv`, csv)
+    fs.writeFileSync(
+      `/data/spreadsheet/csv/${filename}.csv`,
+      serializeSpreadsheetRows(parseRows(csv, ','), ',', 3)
+    )
   }
   const tsv = await toTSV(page)
   if (tsv) {
     fs.writeFileSync(`/data/tsv/${filename}.tsv`, tsv)
+    fs.writeFileSync(
+      `/data/spreadsheet/tsv/${filename}.tsv`,
+      serializeSpreadsheetRows(parseRows(tsv, '\t'), '\t', 3)
+    )
   }
   await page.screenshot({
     path: `/data/screenshot/${filename}.png`,
@@ -305,7 +318,8 @@ function saveAll(
   directory: string,
   extension: string,
   delimiter: Delimiter,
-  outputPath: string
+  outputPath: string,
+  spreadsheetPath: string
 ) {
   const logger = Logger.configure('saveAll')
 
@@ -363,20 +377,36 @@ function saveAll(
     outputPath,
     `${headers}\n${serializeRows(allRows, delimiter)}`
   )
+  fs.writeFileSync(
+    spreadsheetPath,
+    `${headers}\n${serializeSpreadsheetRows(allRows, delimiter, 2)}`
+  )
 }
 
 /** 収集済みの CSV を集約して `/data/all.csv` へ保存する。 */
 function saveAllCsv() {
   const logger = Logger.configure('saveAllCsv')
   logger.info('saveAllCsv()')
-  saveAll('/data/csv/', '.csv', ',', '/data/all.csv')
+  saveAll(
+    '/data/csv/',
+    '.csv',
+    ',',
+    '/data/all.csv',
+    '/data/spreadsheet/all.csv'
+  )
 }
 
 /** 収集済みの TSV を集約して `/data/all.tsv` へ保存する。 */
 function saveAllTsv() {
   const logger = Logger.configure('saveAllTsv')
   logger.info('saveAllTsv()')
-  saveAll('/data/tsv/', '.tsv', '\t', '/data/all.tsv')
+  saveAll(
+    '/data/tsv/',
+    '.tsv',
+    '\t',
+    '/data/all.tsv',
+    '/data/spreadsheet/all.tsv'
+  )
 }
 
 /** 出力先ディレクトリが存在しなければ作成する。 */
@@ -386,6 +416,9 @@ function mkdirs() {
     '/data/tsv',
     '/data/screenshot',
     '/data/html',
+    '/data/spreadsheet',
+    '/data/spreadsheet/csv',
+    '/data/spreadsheet/tsv',
   ]
   for (const directory of directories) {
     if (fs.existsSync(directory)) {

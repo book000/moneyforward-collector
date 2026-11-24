@@ -12,7 +12,7 @@ AI コーディングエージェントとコントリビューター向けの�
 
 ## Overview
 
-MoneyForward の入出金明細を Puppeteer で収集し、CSV、TSV、スクリーンショット（PNG）、HTML として保存する TypeScript 製ツール。収集後に全期間分を集約した `all.csv` と `all.tsv` も生成する。集約ファイルは大項目と中項目の列を含み、期間が重なるファイル間の重複行は除去する。Docker コンテナでは `entrypoint.sh` が 1 時間ごとに再実行する。
+MoneyForward の入出金明細を Puppeteer で収集し、CSV、TSV、スクリーンショット（PNG）、HTML として保存する TypeScript 製ツール。収集後に全期間分を集約した `all.csv` と `all.tsv` も生成する。集約ファイルは大項目と中項目の列を含み、期間が重なるファイル間の重複行は除去する。元の CSV / TSV に加え、`spreadsheet` 配下に数式をエスケープした表計算ソフト向けファイルを生成する。Docker コンテナでは `entrypoint.sh` が 1 時間ごとに再実行する。
 
 ## Commands
 
