@@ -29,6 +29,36 @@ export function serializeRows(
 }
 
 /**
+ * 数式として解釈され得るセルを文字列として出力する。
+ * 金額列の数値はそのまま保持し、数値以外は他の列と同様に扱う。
+ *
+ * @param rows 行データ
+ * @param delimiter 区切り文字
+ * @param amountColumn 金額列の位置
+ * @returns 表計算ソフト向けの CSV/TSV 文字列
+ */
+export function serializeSpreadsheetRows(
+  rows: readonly (readonly string[])[],
+  delimiter: Delimiter,
+  amountColumn: number
+): string {
+  return serializeRows(
+    rows.map((row) =>
+      row.map((value, index) => {
+        if (
+          index === amountColumn &&
+          /^[+-]?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(value)
+        ) {
+          return value
+        }
+        return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+      })
+    ),
+    delimiter
+  )
+}
+
+/**
  * CSV/TSV 文字列を厳密にパースして行データ（セル値の二次元配列）へ変換する。
  *
  * 空行は無視する。列数が行ごとに異なっていてもエラーにしない。

@@ -7,6 +7,7 @@ import {
   parseRowsLegacy,
   parseRowsStrict,
   serializeRows,
+  serializeSpreadsheetRows,
 } from './csv'
 
 const delimiters: Delimiter[] = [',', '\t']
@@ -100,4 +101,51 @@ describe('parseRowsLegacy', () => {
       ['c', ''],
     ])
   })
+})
+
+describe('serializeSpreadsheetRows', () => {
+  for (const delimiter of delimiters) {
+    it(`${delimiter === ',' ? 'CSV' : 'TSV'}: 文字列の数式をエスケープし、金額と元データを保持する`, () => {
+      const rows = [
+        [
+          '=1+1',
+          '+cmd',
+          '-text',
+          '-1,234',
+          '@x',
+          '\tcmd',
+          '\rcmd',
+          '普通',
+          "'=1",
+        ],
+        ['=2', 'text', '', '=1+1'],
+        ['x', 'y', 'z', '-123'],
+      ]
+      const original = structuredClone(rows)
+      const safe = parseRowsStrict(
+        serializeSpreadsheetRows(rows, delimiter, 3),
+        delimiter
+      )
+      assert.deepEqual(safe, [
+        [
+          "'=1+1",
+          "'+cmd",
+          "'-text",
+          '-1,234',
+          "'@x",
+          "'\tcmd",
+          "'\rcmd",
+          '普通',
+          "'=1",
+        ],
+        ["'=2", 'text', '', "'=1+1"],
+        ['x', 'y', 'z', '-123'],
+      ])
+      assert.deepEqual(rows, original)
+      assert.deepEqual(
+        parseRowsStrict(serializeRows(rows, delimiter), delimiter),
+        original
+      )
+    })
+  }
 })
